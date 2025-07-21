@@ -55,7 +55,7 @@ class Metrics():
  # /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 class SpikingNet(torch.nn.Module):
-    def __init__(self, opt, spike_grad=surrogate.fast_sigmoid(), learn_alpha=True, learn_beta=True, learn_treshold=True):
+    def __init__(self, opt, spike_grad=surrogate.fast_sigmoid(), learn_alpha=True, learn_beta=True, learn_threshold=True):
         super().__init__()
 
         # Initialize layers
@@ -151,9 +151,23 @@ class SpikingNet(torch.nn.Module):
         return spk2, spk1, syn1, mem1, mem2
 
     def forward(self, x, time_first=True):
+        #print("[DEBUG] Input x shape before transpose:", x.shape)
 
-        spk1, syn1, mem1 = self.lif1.init_rsynaptic()
-        mem2 = self.lif2.init_leaky()
+        if not time_first:
+            # x: [batch, time, input] → [time, batch, input]
+            x = x.permute(1, 0, 2).contiguous()
+
+        batch_size = x.shape[1]
+
+        spk1 = torch.zeros(batch_size, self.fc1.out_features, device=x.device)
+        syn1 = torch.zeros_like(spk1)
+        mem1 = torch.zeros_like(spk1)
+        mem2 = torch.zeros(batch_size, self.fc2.out_features, device=x.device)
+
+        #print("[DEBUG] Initial spk1 shape:", spk1.shape)
+        # print("[DEBUG] Initial syn1 shape:", syn1.shape)
+        # print("[DEBUG] Initial mem1 shape:", mem1.shape)
+        # print("[DEBUG] Initial mem2 shape:", mem2.shape)
 
         # Record the spikes from the hidden layer (if needed)
         spk1_rec = [] # not necessarily needed for inference
@@ -161,22 +175,26 @@ class SpikingNet(torch.nn.Module):
         spk2_rec = []
         mem2_rec = []
 
-        if not time_first:
-            #test = data
-            x=x.transpose(1, 0)
 
-        # Print the shape of the new tensor to verify the dimensions are swapped
-        #print(x.shape)
+        assert x.shape[0] == self.num_steps, f"Expected time dimension {self.num_steps}, got {x.shape[0]}"
+        assert x.shape[1] == batch_size, f"Expected batch size {batch_size}, got {x.shape[1]}"
+        # print("[DEBUG] Input x shape after transpose:", x.shape)
+
         for step in range(self.num_steps):
+            # print(f"[DEBUG] Step {step}: x[step] shape:", x[step].shape)
             ## Input layer
             cur1 = self.fc1(x[step])
+            # print(f"[DEBUG] Step {step}: cur1 shape:", cur1.shape)
 
             ### Recurrent layer
             spk1, syn1, mem1 = self.lif1(cur1, spk1, syn1, mem1)
+            # print(f"[DEBUG] Step {step}: spk1 shape after lif1:", spk1.shape)
 
             ### Output layer
             cur2 = self.fc2(spk1)
+            # print(f"[DEBUG] Step {step}: cur2 shape:", cur2.shape)
             spk2, mem2 = self.lif2(cur2, mem2)
+            # print(f"[DEBUG] Step {step}: spk2 shape after lif2:", spk2.shape)
 
             spk2_rec.append(spk2)
             mem2_rec.append(mem2)
