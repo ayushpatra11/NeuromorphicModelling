@@ -4,11 +4,6 @@ import snntorch.functional as SF
 import utils
 from model import Metrics
 
-indices = None
-
-
-
-
 class Trainer:
     def __init__(self, net, train_loader, val_loader, target_sparcity, recall_duration, graph=None, num_epochs=150, learning_rate=1e-4, target_frequency=0.5, num_steps=10, optimizer="AdamW",wandb_logging=False):
         self.net = net
@@ -23,6 +18,7 @@ class Trainer:
         self.recall_duration = recall_duration
         self.wandb_logging = wandb_logging
         self.mtrcs = Metrics()
+        self.indices = None
 
         if optimizer == "Adam":
             self.optimizer = optim.Adam(self.net.parameters(), lr=learning_rate)
@@ -49,7 +45,7 @@ class Trainer:
         
         self.net.eval()
         with torch.no_grad():
-            #print("Updated weights:\n", self.net.lif1.recurrent.weight.data)
+            print("Updated weights:\n", self.net.lif1.recurrent.weight.data)
             for data, target in self.val_loader:
                 data = data.to(device)
                 target = target.to(device)
@@ -64,9 +60,10 @@ class Trainer:
                     self.mtrcs.perf_measure(target, preds)
                 acc += SF.acc.accuracy_rate(output[-self.recall_duration:], target)
                 val_loss = self.criterion(output[-self.recall_duration:], target)
-                # if self.wandb_logging:
-                    # wandb.log({"Val loss": val_loss.item(),
-                            # "Val index": val_idx})
+                if self.wandb_logging:
+                    import wandb
+                    wandb.log({"Val loss": val_loss.item(),
+                            "Val index": val_idx})
                 counter += 1
                 val_idx += 1
         
@@ -74,11 +71,14 @@ class Trainer:
     
 
     def train(self, device, mapping=None, dut=None):
+        import copy
+        best_acc = 0.0
+        best_model_state = None
+
         self.net = self.net.to(device)
         if self.target_sparcity != 1.0:
-            global indices
 
-            indices = mapping.indices_to_lock
+            self.indices = mapping.indices_to_lock
             num_long_range_conns, num_short_range_conns = utils.calculate_lr_sr_conns(mapping, self.graph)
             #ratio = num_long_range_conns / (num_long_range_conns + num_short_range_conns)
             
@@ -99,22 +99,24 @@ class Trainer:
                 target = target.to(device)
                 
                 # Forward pass
+                # print("[DEBUG] Data shape:", data.shape)
                 outputs, _ = self.net(data, time_first=False)
 
                 # Calculate loss
                 loss = self.criterion(outputs[-self.recall_duration:], target)
-                # if self.wandb_logging:
-                    # wandb.log({"loss": loss.item(),
-                            # "Train index": train_index})
+                if self.wandb_logging:
+                    import wandb
+                    wandb.log({"loss": loss.item(),
+                            "Train index": train_index})
 
                 # Backward pass and optimization
                 self.optimizer.zero_grad()
 
                 loss.backward()
 
-                if indices is not None and self.target_sparcity != 1.0:
+                if self.indices is not None and self.target_sparcity != 1.0:
                     layer = self.net.lif1.recurrent
-                    for idx in indices["indices"]:
+                    for idx in self.indices["indices"]:
                         layer.weight.data[idx] = 0
                         layer.weight.grad[idx] = 0
 
@@ -122,9 +124,9 @@ class Trainer:
 
                 self.optimizer.step()
 
-                if indices is not None and self.target_sparcity != 1.0:
+                if self.indices is not None and self.target_sparcity != 1.0:
                     layer = self.net.lif1.recurrent
-                    for idx in indices["indices"]:
+                    for idx in self.indices["indices"]:
                         layer.weight.data[idx] = 0
                         layer.weight.grad[idx] = 0
 
@@ -137,6 +139,10 @@ class Trainer:
                 accuracy, val_index = self.eval(device, val_index)
                 accuracies.append(accuracy)
                 
+                if accuracy > best_acc:
+                    best_acc = accuracy
+                    best_model_state = copy.deepcopy(self.net.state_dict())
+                
                 #print("ACCURACY",accuracy)
 
                 temp = f"Epoch [{epoch+1}/{self.num_epochs}], Loss: {loss.item():.4f}"
@@ -146,12 +152,14 @@ class Trainer:
                 else:
                     print(temp)
                
-                #wandb.log({"Train Accuracy": accuracy})
+                if self.wandb_logging:
+                    import wandb
+                    wandb.log({"Train Accuracy": accuracy})
             
             # remove connections at each epoch
             if self.target_sparcity != 1.0:
                     mapping = utils.choose_conn_remove(mapping, reps=conn_reps)
-                    indices = mapping.indices_to_lock
+                    self.indices = mapping.indices_to_lock
                     
                     #print("Updated weights:\n", self.net.lif1.recurrent.weight.data)
             
@@ -165,5 +173,15 @@ class Trainer:
         print("Precision:\t%.3f" % self.mtrcs.precision())
         print("Recall:\t%.3f"% self.mtrcs.recall())
         print("F1-Score:\t%.3f"% self.mtrcs.f1_score() +"\n")
+        if self.wandb_logging:
+            import wandb
+            wandb.log({
+                "Final Accuracy": final_accuracy,
+                "Precision": self.mtrcs.precision(),
+                "Recall": self.mtrcs.recall(),
+                "F1-Score": self.mtrcs.f1_score()
+            })
+        if best_model_state is not None:
+            self.net.load_state_dict(best_model_state)
         torch.save(self.net.state_dict(), "model.pth")
-        return self.net, mapping, max(accuracies), final_accuracy, self.mtrcs
+        return self.net, mapping, best_acc, final_accuracy, self.mtrcs

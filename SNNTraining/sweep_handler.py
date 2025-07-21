@@ -31,7 +31,7 @@ class SweepHandler():
             'values': ["atan", "sigmoid", "fast_sigmoid"]
             },
         'batch_size':{
-            'values':[10,20,50]
+            'values':[10]
         }
         
             

@@ -1,9 +1,10 @@
 import torch
+import os
 
 class Variables(object):
     def __init__(self):
-        self.num_inputs = 20
-        self.num_hidden1 = 100
+        self.num_inputs = 40
+        self.num_hidden1 = 512
         self.num_outputs = 2
         self.core_capacity = 25 # calculated automatically during mapping
         self.num_epochs = 100
@@ -12,7 +13,8 @@ class Variables(object):
         self.bs = 10
         self.num_cores = 5
         self.target_sparcity = 1.0
-        self.wandb_key = "paste-key-here"
+        self.wandb_key = os.environ.get("WANDB_API_KEY", None)
+        
 
         self.train = False
 
