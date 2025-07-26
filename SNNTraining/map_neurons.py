@@ -6,6 +6,7 @@
 #                based on the neurogrid approach (topology is a binary tree)
 #   Version History:        
 #       - 2025-07-02: Initial version
+#       - 2025-07-18: Added support to save the tree visualisation
 # 
 #
 ####################################################################################
