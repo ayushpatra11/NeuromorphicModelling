@@ -2,7 +2,6 @@
 *.h5
 SNNTraining/__pycache__
 SNNTraining/wandb/
-*.log
 *.png
 *.pth
 SNNTraining/neuro_eval_env/
