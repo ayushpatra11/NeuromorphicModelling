@@ -1,3 +1,14 @@
+####################################################################################
+#
+#   File Name: mapping.py
+#   Author:  Ayush Patra
+#   Description: This file is responsible for randomly mapping the neurons in 
+#                cores such that the shape/topology is that of a binary tree.
+#   Version History:        
+#       - 2025-07-02: Initial version (based on neurogrid approach)
+#
+####################################################################################
+
 import torch
 import snntorch as snn  
 

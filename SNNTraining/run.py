@@ -1,3 +1,18 @@
+####################################################################################
+#
+#   File Name: run.py
+#   Author:  Ayush Patra
+#   Description: This file is responsible for performing the preparation of the 
+#                dataset, training of the model and sweep training using wandb.
+#   Version History:        
+#       - 2025-07-02: Initial version
+#       - 2025-07-10: Added the code for training the SNN model based on previous
+#                     version of code done by Aaron.
+#       - 2025-07-13: Started training and refactored the code accordingly.
+#
+####################################################################################
+
+
 from model import SpikingNet
 from train_model import Trainer
 from options import Variables

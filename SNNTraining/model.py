@@ -1,3 +1,18 @@
+####################################################################################
+#
+#   File Name: model.py
+#   Author:  Ayush Patra
+#   Description: This file contains the code for the SNN model and the metrics class.
+#   Version History:        
+#       - 2025-07-02: Initial version
+#       - 2025-07-10: Added the code for training the SNN model based on previous
+#                     version of code done by Aaron.
+#       - 2025-07-21: Modified the code to seperate the forward for training phase
+#                     and evaluation phase.
+#       - 2025-07-26: Refactored the code to make it more readable and modular.
+#
+####################################################################################
+
 import torch
 import snntorch as snn
 import snntorch.functional as SF
@@ -6,7 +21,14 @@ import torch.nn as nn
 from snntorch import surrogate
 
 
-# /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+####################################################################################
+#
+#   Class Name: Metrics
+#   Description: This class contains the metrics for the SNN model.
+#   Version History:        
+#       - 2025-07-02: Initial version based on the code done by Aaron.
+#
+####################################################################################
 
 class Metrics():
     def __init__(self, ):
@@ -52,7 +74,22 @@ class Metrics():
         return self.TP, self.TN, self.FP, self.FN
         
 
- # /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+####################################################################################
+#
+#   Class Name: Metrics
+#   Description: This class contains the metrics for the SNN model.
+#   Version History:        
+#       - 2025-07-02: Initial version based on the code done by Aaron.
+#       - 2025-07-10: Changed the code to seperate the forward for training phase
+#                     and evaluation phase.
+#       - 2025-07-21: Changed the code based on the bugs encountered during the
+#                     training phase.
+#       - 2025-07-21: Changed the code based on the bugs encountered during the
+#                     evaluation phase and due to changes in NIR export.
+#       - 2025-07-26: Refactored the code to make it more readable and modular.
+#
+####################################################################################
 
 class SpikingNet(torch.nn.Module):
     def __init__(self, opt, spike_grad=surrogate.fast_sigmoid(), learn_alpha=True, learn_beta=True, learn_threshold=True):
@@ -151,6 +188,18 @@ class SpikingNet(torch.nn.Module):
         return spk2, spk1, syn1, mem1, mem2
 
     def forward(self, x, time_first=True):
+
+        # DEBUG : THE CHANGES MADE HERE ARE BASED ON THE BUGS ENCOUNTERED DURING THE EVALUATION PHASE:
+        # 1. The shape of the input x was not being checked.
+        # 2. The shape of the spk1, syn1, mem1, mem2 was not being checked.
+        # 3. The shape of the cur1, cur2 was not being checked.
+        # 4. The shape of the spk2_rec, mem2_rec was not being checked.
+        # 5. The shape of the spk1_rec was not being checked.
+
+        # These changes are made on top of the classes defined by Aaron. These are because of the changes in 
+        # SNNTorch library.
+
+        
         #print("[DEBUG] Input x shape before transpose:", x.shape)
 
         if not time_first:

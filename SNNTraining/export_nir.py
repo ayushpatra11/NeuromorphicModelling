@@ -1,3 +1,19 @@
+####################################################################################
+#
+#   File Name: export_nir.py
+#   Author:  Ayush Patra
+#   Description: Used to export the neuromorphic intermediate representation of the
+#                trained model and provide a connectivity matrix for the excitatory
+#                neurons
+#   Version History:        
+#       - 2025-07-02: Initial version
+#       - 2025-07-02: Added support for newer version of snnTorch and nir_export
+#       - 2025-07-02: Added support to derive weight matrix
+#       - 2025-07-02: Used threshold and positive values to get excitatory neurons
+#                     for the connectivity matrix.
+#
+####################################################################################
+
 import torch
 from graph import Graph
 from model import SpikingNet  

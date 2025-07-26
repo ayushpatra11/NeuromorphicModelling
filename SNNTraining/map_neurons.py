@@ -1,4 +1,14 @@
-
+####################################################################################
+#
+#   File Name: map_neurons.py
+#   Author:  Ayush Patra
+#   Description: This file utilizes the mapping class to map neurons to cores
+#                based on the neurogrid approach (topology is a binary tree)
+#   Version History:        
+#       - 2025-07-02: Initial version
+# 
+#
+####################################################################################
 
 import json
 from mapping import Mapping

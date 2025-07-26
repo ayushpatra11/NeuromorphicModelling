@@ -1,3 +1,14 @@
+####################################################################################
+#
+#   File Name: sample.py
+#   Author:  Ayush Patra
+#   Description: This file was used to try nir export and check compatibility with
+#                other lib versions. This is a non-essential class.
+#   Version History:        
+#       - 2025-07-02: Initial version
+# 
+#
+####################################################################################
 import snntorch as snn
 import torch
 from snntorch.export_nir import export_to_nir
