@@ -1,3 +1,15 @@
+####################################################################################
+#
+#   File Name: graph.py
+#   Author:  Ayush Patra
+#   Description: This file was used to try nir export and check compatibility with
+#                other lib versions. This is a non-essential class.
+#   Version History:        
+#       - 2025-07-02: Initial version (based on aaron's approach)
+#       - 2025-07-21: Added support for weight matrix to derive connectivity matrix
+#
+####################################################################################
+
 import torch
 import re
 import networkx as nx

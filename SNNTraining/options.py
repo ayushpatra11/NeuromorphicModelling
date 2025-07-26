@@ -1,3 +1,13 @@
+####################################################################################
+#
+#   File Name: options.py
+#   Author:  Ayush Patra
+#   Description: This file contains the details, shape, wandb info and num_steps
+#                information for the SNN model.
+#   Version History:        
+#       - 2025-07-02: Initial version (based on code by Aaron)
+# 
+####################################################################################
 import torch
 import os
 

@@ -1,3 +1,16 @@
+####################################################################################
+#
+#   File Name: generate_packets.py
+#   Author:  Ayush Patra
+#   Description: 
+#   Version History:        
+#       - 2025-07-02: Initial version
+# 
+#
+####################################################################################
+
+
+
 from .model import SpikingNet
 from .train import Trainer
 from .graph import Graph

@@ -1,3 +1,16 @@
+####################################################################################
+#
+#   File Name: utils.py
+#   Author:  Ayush Patra
+#   Description: This file contains the utils class that will provide seperate features
+#                for training and evaluating the network.
+#   Version History:        
+#       - 2025-07-02: Initial version
+#       - 2025-07-10: Added the code for training the SNN model based on previous
+#                     version of code done by Aaron.
+#
+####################################################################################
+
 import snntorch as snn
 import torch
 import random
@@ -5,19 +18,6 @@ import random
 spike_record = {}
 counter = 0
 
-# def _reset_spike_record_and_hooks():
-#         global spike_record, hooks
-
-#         # Clear the spike_record dictionary
-#         spike_record = {}
-
-#         # Remove existing hooks if they are already registered
-#         if 'hooks' in globals():
-#             for hook in hooks:
-#                 hook.remove()
-#                 hooks = []
-
-# Function to create a hook that records spikes
 def _create_spike_hook(layer_name):
     def hook(module, input, output):
         if layer_name not in spike_record:

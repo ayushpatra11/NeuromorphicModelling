@@ -1,3 +1,14 @@
+####################################################################################
+#
+#   File Name: dataset.py
+#   Author:  Ayush Patra
+#   Description: Used to create a binary navigation (synthetic) dataset based on 
+#                Aaron's approach and snnTorch tutorials of spike encoding.
+#   Version History:        
+#       - 2025-07-02: Initial version
+#       - 2025-07-02: Added comments for readability
+#
+####################################################################################
 import numpy as np
 import numpy.random as rd
 import torch

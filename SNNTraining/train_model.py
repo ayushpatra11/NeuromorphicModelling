@@ -1,3 +1,15 @@
+####################################################################################
+#
+#   File Name: train_model.py
+#   Author:  Ayush Patra
+#   Description: This file contains the code for training the SNN model.
+#   Version History:        
+#       - 2025-07-02: Initial version
+#       - 2025-07-10: Added the code for training the SNN model based on previous
+#                     version of code done by Aaron.
+#
+####################################################################################
+
 import torch
 import torch.optim as optim
 import snntorch.functional as SF

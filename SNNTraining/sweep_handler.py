@@ -1,3 +1,16 @@
+####################################################################################
+#
+#   File Name: sweep_handler.py
+#   Author:  Ayush Patra
+#   Description: This file contains all the configuration and hyperparameters
+#                to tune and train the model using sweep training and wandb
+#   Version History:        
+#       - 2025-07-02: Initial version
+#       - 2025-07-10: Added the code for training the SNN model based on previous
+#                     version of code done by Aaron.
+#
+####################################################################################
+
 class SweepHandler():
     """
     This class is used to define the sweep parameters and the metric to be used for the sweep.
