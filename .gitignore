@@ -6,3 +6,6 @@ SNNTraining/wandb/
 *.png
 *.pth
 SNNTraining/neuro_eval_env/
+*.o
+main
+*.txt
