@@ -1,0 +1,32 @@
+
+#########################################
+#########################################
+
+!!IMPORTANT!! You need to create a WandB account and paste your authorization key in options.py to use this.
+
+#########################################
+#########################################
+
+Create sweep with ID: osktr0tg
+Sweep URL: https://wandb.ai/ayushpatra11-university-of-manchester-students-union/MSC_Thesis_SNN_Training/sweeps/osktr0tg
+
+----- TRAINING -----
+
+Updated weights:
+ tensor([[nan, nan, nan,  ..., nan, nan, nan],
+        [nan, nan, nan,  ..., nan, nan, nan],
+        [nan, nan, nan,  ..., nan, nan, nan],
+        ...,
+        [nan, nan, nan,  ..., nan, nan, nan],
+        [nan, nan, nan,  ..., nan, nan, nan],
+        [nan, nan, nan,  ..., nan, nan, nan]], device='cuda:0')
+Epoch [1/100], Loss: 0.6931
+Updated weights:
+ tensor([[nan, nan, nan,  ..., nan, nan, nan],
+        [nan, nan, nan,  ..., nan, nan, nan],
+        [nan, nan, nan,  ..., nan, nan, nan],
+        ...,
+        [nan, nan, nan,  ..., nan, nan, nan],
+        [nan, nan, nan,  ..., nan, nan, nan],
+        [nan, nan, nan,  ..., nan, nan, nan]], device='cuda:0')
+Epoch [10/100], Loss: 0.6931
