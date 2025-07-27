@@ -24,6 +24,7 @@ using namespace std;
 
 class Utils {
 private:
+    float weightThreshold;
     string logFileName;
     string connectivityMatrixFilePath;
     vector<vector<int>> connectivityMatrix;
@@ -37,7 +38,7 @@ public:
 	void printNeuronMap();
 
 	// Reads a plain text matrix from a file
-	static vector<vector<int>> loadConnectivityMatrix(const string& filePath);
+	vector<vector<int>> loadConnectivityMatrix(const string& filePath);
 
 	// Initializes a zero matrix of given dimensions
 	static vector<vector<int>> initializeZeroMatrix(int rows, int cols);

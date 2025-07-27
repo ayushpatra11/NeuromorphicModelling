@@ -18,9 +18,12 @@
 #include <unordered_set>
 #include <map>
 #include <algorithm>
+#include "Utils.h"
 
 class RoutingSimulator {
 private:
+    Utils routingUtils;
+    float weightThreshold;
     const std::vector<std::vector<int>>& connectivityMatrix;
     const std::unordered_map<int, int>& neuronToCoreMap;
     const std::unordered_map<int, std::vector<int>>& coreTree;
@@ -37,7 +40,8 @@ private:
 public:
         RoutingSimulator(const std::vector<std::vector<int>>& connectivityMatrix,
                          const std::unordered_map<int, int>& neuronToCoreMap,
-                         const std::unordered_map<int, std::vector<int>>& coreTree);
+                         const std::unordered_map<int, std::vector<int>>& coreTree,
+                        Utils routingUtils);
     
         void simulate();
         void reportWasteStatistics() const;

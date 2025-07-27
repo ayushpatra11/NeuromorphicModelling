@@ -20,6 +20,7 @@ using json = nlohmann::json;
 using namespace std;
 
 Utils::Utils(string matrixFilePath): connectivityMatrixFilePath(matrixFilePath) {
+        weightThreshold = 0.0435f;
         logFileName = createLogFileName();
         logToFile("Utils initialized");
         // Load the connectivity matrix from the specified file
@@ -32,7 +33,7 @@ Utils::Utils(string matrixFilePath): connectivityMatrixFilePath(matrixFilePath) 
         }
         logToFile("Connectivity matrix loaded from: " + connectivityMatrixFilePath);
         logToFile("Connectivity matrix dimensions: " + to_string(connectivityMatrix.size()) + "x" + to_string(connectivityMatrix[0].size()));
-        printConnectivityMatrix();
+        //printConnectivityMatrix();
 }
 
 void Utils::printConnectivityMatrix() {
@@ -73,7 +74,7 @@ vector<vector<int>> Utils::loadConnectivityMatrix(const string& filePath) {
     for (const auto& row : j) {
         vector<int> binaryRow;
         for (const auto& val : row) {
-            binaryRow.push_back(val > 0 ? 1 : 0);
+            binaryRow.push_back(val>weightThreshold? 1: 0);
         }
         matrix.push_back(binaryRow);
     }
