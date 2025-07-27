@@ -27,26 +27,26 @@ int main() {
         return 1;
     }
 
-    NeuronMapper neuronMapper(512, 32);
+    NeuronMapper neuronMapper(512, 64);
     routingUtils.logToFile("NeuronMapper initialized...");
 
     routingUtils.setNeuronCoreMap(neuronMapper.getNeuronToCoreMap());
-    routingUtils.printNeuronMap();
+    //routingUtils.printNeuronMap();
 
     // Initialize RoutingSimulator and run simulation
     RoutingSimulator simulator(connectivityMatrix,
                                neuronMapper.getNeuronToCoreMap(),
-                               neuronMapper.getCoreTree());
+                               neuronMapper.getCoreTree(), routingUtils);
     simulator.simulate();
 
     // Retrieve and print routing waste
-    auto waste = simulator.getWastedMessagesPerCore();
-    int totalWaste = 0;
-    for (const auto& [core, count] : waste) {
-        cout << "Core " << core << " wasted messages: " << count << endl;
-        totalWaste += count;
-    }
-    cout << "Total routing waste: " << totalWaste << endl;
+    // auto waste = simulator.getWastedMessagesPerCore();
+    // int totalWaste = 0;
+    // for (const auto& [core, count] : waste) {
+    //     cout << "Core " << core << " wasted messages: " << count << endl;
+    //     totalWaste += count;
+    // }
+    // cout << "Total routing waste: " << totalWaste << endl;
 
     return 0;
 }
