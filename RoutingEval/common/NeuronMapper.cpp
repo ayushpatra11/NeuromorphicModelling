@@ -26,7 +26,7 @@ void logCoreTreeRecursive(int node, const std::unordered_map<int, std::vector<in
     if (isLeaf)
         out << "Core " << node << "\n";
     else
-        out << "Dummy Core " << node << "\n";
+        out << "Network Switch " << node << "\n";
 
     auto it = core_tree.find(node);
     if (it != core_tree.end()) {

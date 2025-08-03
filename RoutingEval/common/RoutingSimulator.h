@@ -36,7 +36,7 @@ private:
     
     void traverseTree(int coreId, std::unordered_set<int>& visitedCores);
     void simulateNeuronToNeuron(int sourceNeuron);
-    void routeMessage(int srcCore, int tgtCore, std::unordered_set<int>& visitedCores);
+    //void routeMessage(int srcCore, int tgtCore, std::unordered_set<int>& visitedCores);
 
 public:
         RoutingSimulator(const std::vector<std::vector<int>>& connectivityMatrix,

@@ -46,6 +46,8 @@ void RoutingSimulator::simulate() {
     // int src = rand() % numNeurons; // Randomly select a source neuron for debuggin only. 
 
         //Printing all target neurons and the target cores. 
+
+
         std::map<int, vector<int>> targetCores;
         for(int i = 0; i<numNeurons; i++){
             if(connectivityMatrix[src][i] > weightThreshold && neuronToCoreMap.find(i) != neuronToCoreMap.end()) {
@@ -57,22 +59,37 @@ void RoutingSimulator::simulate() {
                 }
             }
         }
+
+
+        //For each Neuron, producing a Routing Summary. 
+
+
         routingUtils.logToFile("--- Routing Summary for Neuron " + std::to_string(src) + " ---");
         routingUtils.logToFile("Number of target cores: "+to_string(targetCores.size()));
 
+        // In case there are NO target CORES (This neuron did not fire at all during evaluation of 155 time steps)
         if (targetCores.empty()) {
             routingUtils.logToFile("No target cores for source neuron " + std::to_string(src) + ". Skipping routing.");
             continue;
         }
 
+
+        //else continue. 
+
+        // error scenario where core is not found. 
         if (neuronToCoreMap.find(src) == neuronToCoreMap.end()) {
             routingUtils.logToFile("Skipping src neuron " + std::to_string(src) + ": no core mapping.");
             continue;
         }
+
+        //find the source core of the nueorn. 
+
         int srcCore = neuronToCoreMap.at(src);
         routingUtils.logToFile("Source neuron " + std::to_string(src) + " belongs to core " + std::to_string(srcCore));
 
         routingUtils.logToFile("For source neuron "+to_string(src)+" at core "+to_string(srcCore)+" targets are: ");
+
+        //logging the target neurons. 
         for(auto& it: targetCores){
             string st = "";
             for(int num: it.second)
@@ -144,145 +161,40 @@ void RoutingSimulator::simulate() {
         for (int tgt : actualTargetCores)
             routingUtils.logToFile(" -> Core " + std::to_string(tgt));
 
-        // Now, for each target core, descend down from LCA to the target core using tree structure
-        for (int targetCore : actualTargetCores) {
-            int current = lcaCore;
-            while (current != targetCore) {
-                const auto& children = coreTree.at(current);
-                if (std::find(children.begin(), children.end(), targetCore) != children.end()) {
-                    current = targetCore;
-                } else {
-                    bool found = false;
-                    for (int child : children) {
-                        if (isDescendant(child, targetCore)) {
-                            current = child;
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (!found) {
-                        routingUtils.logToFile("Routing error: Could not route down to target core: " + std::to_string(targetCore));
-                        break;
-                    }
-                }
-                routingUtils.logToFile("Going down to core: " + std::to_string(current));
+        // --- Compute waste for other subtrees under the LCA, but only count *leaf* descendants (real cores) ---
+        // Identify all leaf descendants of LCA
+        std::unordered_set<int> leafDescendants;
+        std::function<void(int)> collectLeafDescendants = [&](int node) {
+            if (coreTree.find(node) == coreTree.end()) {
+                leafDescendants.insert(node);  // it's a leaf
+                return;
             }
-        }
+            for (int child : coreTree.at(node)) {
+                collectLeafDescendants(child);
+            }
+        };
+        collectLeafDescendants(lcaCore);
 
-        // Add dummy and real visited cores
-        std::unordered_set<int> visitedCores = visited;
-        visitedCores.insert(lcaCore);
-        for (int core : visitedCores) {
-            if (coreTree.find(core) == coreTree.end())
-                visitedCores.insert(core);
-        }
-
-        routingUtils.logToFile("Visited real cores: ");
+        routingUtils.logToFile("Visited real cores (leaf descendants under LCA " + std::to_string(lcaCore) + "):");
         std::string visitedStr = "";
-        for (int core : visitedCores) {
-            if (coreTree.find(core) == coreTree.end())  // only real cores
-                visitedStr += std::to_string(core) + " ";
+        for (int core : leafDescendants) {
+            visitedStr += std::to_string(core) + " ";
         }
         routingUtils.logToFile(visitedStr);
 
-        for (int core : visitedCores) {
-            if (core != srcCore && actualTargetCores.find(core) == actualTargetCores.end()) {
-                wastedMessages[core]++;
-                routingUtils.logToFile("Wasted message at core " + std::to_string(core) + " (visited but not a target core)");
-            }
-        }
-
-        routingUtils.logToFile("Checking neuron-level waste (i.e., target cores that should not have been visited):");
-        int totalNeuronWaste = 0;
-        int neuronsPerCore = 64;
-        for (int visitedCore : visitedCores) {
-            // Skip source core and actual targets
-            if (visitedCore != srcCore && actualTargetCores.find(visitedCore) == actualTargetCores.end()) {
-                totalNeuronWaste += neuronsPerCore;
-                routingUtils.logToFile("Neuron-level waste: all " + std::to_string(neuronsPerCore) +
-                                    " neurons in core " + std::to_string(visitedCore) +
-                                    " received unnecessary spike.");
-            }
-        }
-
-        // Compute and print total number of valid spikes (excluding same-core) and waste percentage
-        int totalValidMessages = 0;
-        for (int tgt = 0; tgt < numNeurons; ++tgt) {
-            if (connectivityMatrix[src][tgt] > weightThreshold &&
-                neuronToCoreMap.find(src) != neuronToCoreMap.end() &&
-                neuronToCoreMap.find(tgt) != neuronToCoreMap.end() &&
-                neuronToCoreMap.at(src) != neuronToCoreMap.at(tgt)) {
-                totalValidMessages++;
-                routingUtils.logToFile("Valid spike: src neuron " + std::to_string(src) + " (core " + std::to_string(neuronToCoreMap.at(src)) +
-                                    ") to tgt neuron " + std::to_string(tgt) + " (core " + std::to_string(neuronToCoreMap.at(tgt)) + ")");
-            }
-        }
-
         int totalCoreWaste = 0;
-        for (const auto& [core, waste] : wastedMessages) {
-            totalCoreWaste += waste;
+        for (int leaf : leafDescendants) {
+            if (actualTargetCores.find(leaf) == actualTargetCores.end()) {
+                routingUtils.logToFile("Core-level waste: core " + std::to_string(leaf) + " under LCA " + std::to_string(lcaCore) + " was not a target.");
+                totalCoreWaste++;
+            }
         }
 
-        routingUtils.logToFile("Total valid messages: " + std::to_string(totalValidMessages));
         routingUtils.logToFile("Total core-level routing waste: " + std::to_string(totalCoreWaste));
-        routingUtils.logToFile("Total neuron-level routing waste: " + std::to_string(totalNeuronWaste));
-        if (totalValidMessages > 0) {
-            float wastePercentage = static_cast<float>(totalNeuronWaste) / (totalNeuronWaste + totalValidMessages) * 100.0f;
-            routingUtils.logToFile("Neuron-level waste percentage: " + std::to_string(wastePercentage) + "%");
-        }
+
         routingUtils.logToFile("Finished simulation for source neuron " + std::to_string(src));
     }
 }
-
-void RoutingSimulator::routeMessage(int srcCore, int tgtCore, std::unordered_set<int>& visitedCores) {
-    if (srcCore == tgtCore) return;
-
-    std::string pathTrace = "Routing from Core " + std::to_string(srcCore) + " to Core " + std::to_string(tgtCore) + ": ";
-    std::vector<int> pathSrc, pathTgt;
-
-    int current = srcCore;
-    while (current >= 0) {
-        pathSrc.push_back(current);
-        if (coreParent.find(current) == coreParent.end() || coreParent.at(current) == -1)
-            break;
-        current = coreParent.at(current);
-    }
-
-    current = tgtCore;
-    while (current >= 0) {
-        pathTgt.push_back(current);
-        if (coreParent.find(current) == coreParent.end() || coreParent.at(current) == -1)
-            break;
-        current = coreParent.at(current);
-    }
-
-    std::reverse(pathSrc.begin(), pathSrc.end());
-    std::reverse(pathTgt.begin(), pathTgt.end());
-
-    int lca = -1;
-    size_t i = 0;
-    while (i < pathSrc.size() && i < pathTgt.size() && pathSrc[i] == pathTgt[i]) {
-        lca = pathSrc[i];
-        ++i;
-    }
-
-    std::unordered_set<int> dummyVisitedInPath;
-    for (int j = pathSrc.size() - 1; j >= static_cast<int>(i); --j) {
-        if (coreTree.find(pathSrc[j]) != coreTree.end()) {
-            pathTrace += "U(" + std::to_string(pathSrc[j]) + ") -> ";
-            dummyVisitedInPath.insert(pathSrc[j]);
-        } else {
-            visitedCores.insert(pathSrc[j]);
-        }
-    }
-
-    if (coreTree.find(lca) != coreTree.end()) {
-        pathTrace += "B(" + std::to_string(lca) + ")";
-    }
-
-    routingUtils.logToFile(pathTrace);
-}
-
 
 // Computes the Lowest Common Ancestor (LCA) between two cores in the core tree
 int RoutingSimulator::findLCA(int coreA, int coreB) {

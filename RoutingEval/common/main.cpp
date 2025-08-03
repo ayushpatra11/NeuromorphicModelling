@@ -31,7 +31,7 @@ int main() {
     routingUtils.logToFile("NeuronMapper initialized...");
 
     routingUtils.setNeuronCoreMap(neuronMapper.getNeuronToCoreMap());
-    routingUtils.printNeuronMap();
+    //routingUtils.printNeuronMap();
 
     // Initialize RoutingSimulator and run simulation
     RoutingSimulator simulator(connectivityMatrix,
