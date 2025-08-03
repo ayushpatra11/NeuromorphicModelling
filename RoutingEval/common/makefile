@@ -9,7 +9,7 @@ SRC := main.cpp Utils.cpp NeuronMapper.cpp RoutingSimulator.cpp
 OBJ := $(SRC:.cpp=.o)
 
 # Target
-TARGET := main
+TARGET := RunSimulator
 
 # Default rule
 all: $(TARGET)

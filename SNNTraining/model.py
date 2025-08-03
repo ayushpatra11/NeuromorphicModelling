@@ -247,5 +247,7 @@ class SpikingNet(torch.nn.Module):
 
             spk2_rec.append(spk2)
             mem2_rec.append(mem2)
+            spk1_rec.append(spk1.clone()) 
+            
 
-        return torch.stack(spk2_rec, dim=0), torch.stack(mem2_rec, dim=0)
+        return torch.stack(spk2_rec, dim=0), torch.stack(mem2_rec, dim=0), torch.stack(spk1_rec, dim=0)
