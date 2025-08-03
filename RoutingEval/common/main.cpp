@@ -19,7 +19,7 @@ using namespace std;
 
 int main() {
     // Loading the connectivity matrix from a file
-    string matrixFilePath = "../data/recurrent_excitatory_matrix.json";
+    string matrixFilePath = "../data/dynamic_connectivity_matrix.json";
     Utils routingUtils(matrixFilePath);
     vector<vector<int>> connectivityMatrix = routingUtils.getConnectivityMatrix();
     if (connectivityMatrix.empty()) {
@@ -27,16 +27,16 @@ int main() {
         return 1;
     }
 
-    NeuronMapper neuronMapper(512, 64);
+    NeuronMapper neuronMapper(512, 32, connectivityMatrix);
     routingUtils.logToFile("NeuronMapper initialized...");
 
     routingUtils.setNeuronCoreMap(neuronMapper.getNeuronToCoreMap());
-    //routingUtils.printNeuronMap();
+    routingUtils.printNeuronMap();
 
     // Initialize RoutingSimulator and run simulation
     RoutingSimulator simulator(connectivityMatrix,
                                neuronMapper.getNeuronToCoreMap(),
-                               neuronMapper.getCoreTree(), routingUtils);
+                               neuronMapper.getCoreTree(), neuronMapper.getCoreParent(), routingUtils);
     simulator.simulate();
 
     // Retrieve and print routing waste

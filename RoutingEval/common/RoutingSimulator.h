@@ -27,6 +27,7 @@ private:
     const std::vector<std::vector<int>>& connectivityMatrix;
     const std::unordered_map<int, int>& neuronToCoreMap;
     const std::unordered_map<int, std::vector<int>>& coreTree;
+    const std::unordered_map<int, int>& coreParent;
     
     std::unordered_map<int, std::unordered_set<int>> actualTargetsPerNeuron;
     std::unordered_map<int, std::unordered_set<int>> visitedNeuronsPerNeuron;
@@ -41,11 +42,15 @@ public:
         RoutingSimulator(const std::vector<std::vector<int>>& connectivityMatrix,
                          const std::unordered_map<int, int>& neuronToCoreMap,
                          const std::unordered_map<int, std::vector<int>>& coreTree,
+                         const std::unordered_map<int, int>& coreParent,
                         Utils routingUtils);
     
         void simulate();
         void reportWasteStatistics() const;
         std::unordered_map<int, int> getWastedMessagesPerCore() const;
+        int findLCA(int sourceCore, int targetCore);
+        bool isDescendant(int current, int target);
+        std::vector<int> shortestPath(int startCore, int endCore);
 };
 
 #endif // ROUTING_SIMULATOR_H

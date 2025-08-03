@@ -20,7 +20,7 @@
 #include <random>
 #include <stdexcept>
 #include <fstream>
-#include <nlohmann/json.hpp>  // If you're using JSON (https://github.com/nlohmann/json)
+#include "nlohmann/json.hpp"  // If you're using JSON (https://github.com/nlohmann/json)
 
 
 
@@ -33,15 +33,17 @@ private:
     std::unordered_map<int, std::pair<int, int>> core_children; // left and right child for each core
     std::unordered_map<int, int> core_parent; // parent for each core
     std::unordered_map<int, std::vector<int>> core_tree;
+    const std::vector<std::vector<int>>& connectivity_matrix; 
 
     void buildBinaryTree();
 
 public:
-    NeuronMapper(int total_neurons, int neurons_per_core);
+    NeuronMapper(int total_neurons, int neurons_per_core, const std::vector<std::vector<int>>& conn_matrix);
     void mapNeurons();
     int getCoreForNeuron(int neuron_id) const;
     const std::unordered_map<int, int>& getNeuronToCoreMap() const;
     const std::unordered_map<int, std::vector<int>>& getCoreTree() const;
+    const std::unordered_map<int, int>& getCoreParent() const;
     int getParentCore(int core_id) const;
     int getTotalCores() const;
     void exportCoreTreeToJson(const std::string& filename) const;
