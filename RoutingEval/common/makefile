@@ -5,7 +5,7 @@ CXX := g++
 CXXFLAGS := -std=c++17 -I./ -I./nlohmann -Wall -Wextra
 
 # Sources and objects
-SRC := main.cpp Utils.cpp NeuronMapper.cpp RoutingSimulator.cpp
+SRC := main.cpp Utils.cpp NeuronMapper.cpp HBSNeuronMapper.cpp HBSRoutingSimulator.cpp RoutingSimulator.cpp
 OBJ := $(SRC:.cpp=.o)
 
 # Target

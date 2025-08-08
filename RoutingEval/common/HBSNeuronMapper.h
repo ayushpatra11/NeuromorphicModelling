@@ -11,8 +11,8 @@
 //#
 //####################################################################################
 
-#ifndef NEURON_MAPPER_H
-#define NEURON_MAPPER_H
+#ifndef HBS_NEURON_MAPPER_H
+#define HBS_NEURON_MAPPER_H
 
 #include <unordered_map>
 #include <vector>
@@ -24,11 +24,13 @@
 
 using json = nlohmann::json;
 
-class NeuronMapper {
+
+class HBSNeuronMapper {
 private:
     int num_neurons;
     int neurons_per_core;
     int core_count;
+    int root_id;
     std::unordered_map<int, int> neuron_to_core;
     std::unordered_map<int, std::pair<int, int>> core_children; // left and right child for each core
     std::unordered_map<int, int> core_parent; // parent for each core
@@ -38,9 +40,9 @@ private:
     void buildBinaryTree();
 
 public:
-    NeuronMapper(int total_neurons, int neurons_per_core, const std::vector<std::vector<int>>& conn_matrix);
+    HBSNeuronMapper(int total_neurons, int neurons_per_core, const std::vector<std::vector<int>>& conn_matrix);
     void mapNeurons();
-    void assignNeuronsToCores();
+    void buildHBSTree(int core_count, std::unordered_map<int, std::vector<int>>& core_tree, std::unordered_map<int, int>& core_parent, int& root_id);
     int getCoreForNeuron(int neuron_id) const;
     const std::unordered_map<int, int>& getNeuronToCoreMap() const;
     const std::unordered_map<int, std::vector<int>>& getCoreTree() const;
@@ -49,8 +51,9 @@ public:
     int getTotalCores() const;
     void exportCoreTreeToJson(const std::string& filename) const;
     void exportCoreNeuronMapToJson(const std::string& filename) const; 
+    int getRootId() const;
     void logCoreTreeRecursive(int node, const std::unordered_map<int, std::vector<int>>& core_tree, std::ostream& out, std::string prefix, bool isLeft, int max_leaf_id);
     void serializeCoreTree(int node, const std::unordered_map<int, std::vector<int>>& core_tree, json& j) const;
 };
 
-#endif // NEURON_MAPPER_H
+#endif // HBS_NEURON_MAPPER_H

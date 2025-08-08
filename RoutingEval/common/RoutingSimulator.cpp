@@ -19,6 +19,7 @@
 #include <random>
 #include <set>
 #include <algorithm>
+#include <fstream>
 
 // Definition for the root core used in LCA checks
 const int rootCore = 30;
@@ -40,6 +41,8 @@ RoutingSimulator::RoutingSimulator(const std::vector<std::vector<int>>& connecti
 void RoutingSimulator::simulate() {
 
     //let us first start with checking the mappings. 
+    std::map<int, int> neuronWaste;  // per-source: number of non-target cores that received
+    std::unordered_map<int, int> coreWaste; // per-core: times it received when not a target
     
     int numNeurons = connectivityMatrix.size();
     for (int src = 0; src < numNeurons; ++src) {
@@ -186,13 +189,52 @@ void RoutingSimulator::simulate() {
         for (int leaf : leafDescendants) {
             if (actualTargetCores.find(leaf) == actualTargetCores.end()) {
                 routingUtils.logToFile("Core-level waste: core " + std::to_string(leaf) + " under LCA " + std::to_string(lcaCore) + " was not a target.");
+                coreWaste[leaf]++;
                 totalCoreWaste++;
             }
         }
 
         routingUtils.logToFile("Total core-level routing waste: " + std::to_string(totalCoreWaste));
+        neuronWaste[src] = totalCoreWaste;
 
         routingUtils.logToFile("Finished simulation for source neuron " + std::to_string(src));
+    }
+
+    // === Final waste summary (core-level only) ===
+    long long totalWasteAll = 0;
+    for (const auto &kv : neuronWaste) totalWasteAll += kv.second;
+
+    routingUtils.logToFile("\n==== Neurogrid Routing Waste Report ====");
+    routingUtils.logToFile("Total illegal deliveries (waste): " + std::to_string(totalWasteAll));
+
+    routingUtils.logToFile("Per-neuron waste (non-zero only):");
+    for (const auto &kv : neuronWaste) {
+        if (kv.second > 0) routingUtils.logToFile("  Neuron " + std::to_string(kv.first) + ": " + std::to_string(kv.second));
+    }
+
+    routingUtils.logToFile("Per-core waste (non-zero only):");
+    for (const auto &kv : coreWaste) {
+        if (kv.second > 0) routingUtils.logToFile("  Core " + std::to_string(kv.first) + ": " + std::to_string(kv.second));
+    }
+    routingUtils.logToFile("==================================");
+
+    // Write the same summary to a file
+    {
+        std::ofstream out("../data/reports/neurogrid_waste_metrics.txt");
+        if (out.is_open()) {
+            out << "==== Neurogrid Routing Waste Report ====" << '\n';
+            out << "Total illegal deliveries (waste): " << totalWasteAll << '\n';
+            out << "Per-neuron waste (non-zero only):" << '\n';
+            for (const auto &kv : neuronWaste) {
+                if (kv.second > 0) out << "  Neuron " << kv.first << ": " << kv.second << '\n';
+            }
+            out << "Per-core waste (non-zero only):" << '\n';
+            for (const auto &kv : coreWaste) {
+                if (kv.second > 0) out << "  Core " << kv.first << ": " << kv.second << '\n';
+            }
+            out << "==================================" << '\n';
+            out.close();
+        }
     }
 }
 

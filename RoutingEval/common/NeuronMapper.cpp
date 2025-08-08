@@ -18,7 +18,7 @@
 
 using json = nlohmann::json;
 
-void logCoreTreeRecursive(int node, const std::unordered_map<int, std::vector<int>>& core_tree, std::ostream& out, std::string prefix = "", bool isLeft = true, int max_leaf_id = -1) {
+void NeuronMapper::logCoreTreeRecursive(int node, const std::unordered_map<int, std::vector<int>>& core_tree, std::ostream& out, std::string prefix = "", bool isLeft = true, int max_leaf_id = -1) {
     out << prefix;
     out << (isLeft ? "├── " : "└── ");
 
@@ -42,21 +42,48 @@ void logCoreTreeRecursive(int node, const std::unordered_map<int, std::vector<in
 
 NeuronMapper::NeuronMapper(int total_neurons, int neurons_per_core, const std::vector<std::vector<int>>& conn_matrix)
     : num_neurons(total_neurons), neurons_per_core(neurons_per_core), connectivity_matrix(conn_matrix) {
-    core_count = (num_neurons + neurons_per_core - 1) / neurons_per_core;
+    assignNeuronsToCores();
     mapNeurons();
 }
 
-void NeuronMapper::mapNeurons() {
-    neuron_to_core.clear();
+void NeuronMapper::assignNeuronsToCores() {
+    std::ifstream infile("../data/neuron_to_core_map.json");
+    if (infile.good()) {
+        json j;
+        infile >> j;
+        infile.close();
+        for (auto& [key, val] : j.items()) {
+            // Skip any non-numeric keys defensively (e.g., comments or extra fields)
+            bool numeric = !key.empty() && std::all_of(key.begin(), key.end(), [](char c){ return c=='-' || std::isdigit(static_cast<unsigned char>(c)); });
+            if (!numeric) continue;
+            int core = 0;
+            try { core = std::stoi(key); } catch (...) { continue; }
+            if (!val.is_array()) continue;
+            for (int neuron : val) {
+                neuron_to_core[neuron] = core;
+            }
+        }
+        {
+            std::unordered_set<int> distinct;
+            for (const auto& [_, core] : neuron_to_core) distinct.insert(core);
+            core_count = (int)distinct.size();
+        }
+        // Compare existing mapping's core count with required cores from parameters
+        int required_cores = (num_neurons + neurons_per_core - 1) / neurons_per_core; // ceil division
+        if (core_count == required_cores) {
+            // Reuse existing mapping as-is
+            return;
+        }
+        // Otherwise, rebuild a fresh neuron_to_core mapping below
+        neuron_to_core.clear();
+    }
 
-    int num_cores = num_neurons / neurons_per_core;
+    int num_cores = (num_neurons + neurons_per_core - 1) / neurons_per_core; // ceil division
     std::vector<std::vector<int>> clusters(num_cores);
     std::vector<bool> visited(num_neurons, false);
-
     std::vector<int> neuron_ids(num_neurons);
     std::iota(neuron_ids.begin(), neuron_ids.end(), 0);
     std::shuffle(neuron_ids.begin(), neuron_ids.end(), std::mt19937{std::random_device{}()});
-
     int cluster_index = 0;
 
     for (int i : neuron_ids) {
@@ -64,8 +91,7 @@ void NeuronMapper::mapNeurons() {
         std::queue<int> q;
         q.push(i);
         visited[i] = true;
-
-        while (!q.empty() && clusters[cluster_index].size() < neurons_per_core) {
+        while (!q.empty() && static_cast<int>(clusters[cluster_index].size()) < neurons_per_core) {
             int n = q.front(); q.pop();
             clusters[cluster_index].push_back(n);
             for (int j = 0; j < num_neurons; ++j) {
@@ -75,7 +101,6 @@ void NeuronMapper::mapNeurons() {
                 }
             }
         }
-
         cluster_index = (cluster_index + 1) % num_cores;
     }
 
@@ -93,8 +118,11 @@ void NeuronMapper::mapNeurons() {
     }
 
     core_count = num_cores;
+    exportCoreNeuronMapToJson("../data/neuron_to_core_map.json");
+}
 
-    // Tree construction remains unchanged...
+void NeuronMapper::mapNeurons() {
+    // Tree construction assumes neuron_to_core is already populated
     core_tree.clear();
     core_children.clear();
     core_parent.clear();
@@ -139,10 +167,9 @@ void NeuronMapper::mapNeurons() {
 
     core_count = next_id;
 
-    exportCoreTreeToJson("../data/core_tree.json");
-    exportCoreNeuronMapToJson("../data/neuron_to_core_map.json");
+    exportCoreTreeToJson("../data/core_tree/core_tree.json");
 
-    std::ofstream logFile("../data/core_tree_structure.txt");
+    std::ofstream logFile("../data/core_tree/core_tree_structure.txt");
     if (logFile) {
         logFile << "Binary Core Tree Structure:\n";
         if (!current_level.empty()) {
@@ -177,7 +204,7 @@ const std::unordered_map<int, int>& NeuronMapper::getCoreParent() const {
 }
 
 // Recursively serialize the core tree as a nested JSON structure
-void serializeCoreTree(int node, const std::unordered_map<int, std::vector<int>>& core_tree, json& j) {
+void NeuronMapper::serializeCoreTree(int node, const std::unordered_map<int, std::vector<int>>& core_tree, json& j) const {
     j["core"] = node;
     if (core_tree.find(node) != core_tree.end()) {
         j["children"] = json::array();
@@ -218,7 +245,8 @@ void NeuronMapper::exportCoreNeuronMapToJson(const std::string& filename) const 
         core_to_neurons[core].push_back(neuron);
     }
 
-    for (const auto& [core, neurons] : core_to_neurons) {
+    for (auto& [core, neurons] : core_to_neurons) {
+        std::sort(neurons.begin(), neurons.end());
         j[std::to_string(core)] = neurons;
     }
 
