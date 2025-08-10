@@ -17,6 +17,10 @@
 #include <iostream>
 #include <cassert>
 #include <sstream>
+// For JSON output
+#include <nlohmann/json.hpp>
+#include <fstream>
+
 static constexpr int MAX_GROUP_SIZE = 4;
 
 using namespace std;
@@ -85,13 +89,14 @@ HBSRoutingSimulator::HBSRoutingSimulator(
     const unordered_map<int, int>& neuronToCoreMap,
     const unordered_map<int, vector<int>>& coreTree,
     const unordered_map<int, int>& coreParent,
-    Utils routingUtils)
+    Utils routingUtils, 
+    string reportDir)
     : routingUtils(routingUtils),
       weightThreshold(1.0f), // default; adjust if your Utils exposes a threshold getter
       connectivityMatrix(connectivityMatrix),
       neuronToCoreMap(neuronToCoreMap),
       coreTree(coreTree),
-      coreParent(coreParent) {
+      coreParent(coreParent), reportDir(reportDir) {
 
     // If Utils exposes a threshold, pick it up (comment out if Utils has no such API)
     // weightThreshold = routingUtils.getWeightThreshold();
@@ -346,38 +351,28 @@ void HBSRoutingSimulator::reportWasteStatistics() const {
     long long totalWaste = 0;
     for (const auto& kv : wastePerNeuron) totalWaste += kv.second;
 
-    //cout << "\n==== HBS Routing Waste Report ====" << '\n';
-    //cout << "Total illegal deliveries (waste): " << totalWaste << '\n';
+    nlohmann::json j;
+    j["total_illegal_deliveries"] = totalWaste;
 
-    //cout << "Per-neuron waste (non-zero only):" << '\n';
-    // for (const auto& kv : wastePerNeuron) {
-    //     if (kv.second > 0)
-    //         cout << "  Neuron " << kv.first << ": " << kv.second << '\n';
-    // }
+    nlohmann::json neuronWasteJson = nlohmann::json::object();
+    for (const auto& kv : wastePerNeuron) {
+        if (kv.second > 0) {
+            neuronWasteJson[std::to_string(kv.first)] = kv.second;
+        }
+    }
+    j["per_neuron_waste"] = neuronWasteJson;
 
-    // cout << "Per-core waste (non-zero only):" << '\n';
-    // for (const auto& kv : wastedMessages) {
-    //     if (kv.second > 0)
-    //         cout << "  Core " << kv.first << ": " << kv.second << '\n';
-    // }
-    // cout << "==================================" << "\n";
+    nlohmann::json coreWasteJson = nlohmann::json::object();
+    for (const auto& kv : wastedMessages) {
+        if (kv.second > 0) {
+            coreWasteJson[std::to_string(kv.first)] = kv.second;
+        }
+    }
+    j["per_core_waste"] = coreWasteJson;
 
-    // --- Write waste statistics to file ---
-    std::ofstream metricsFile("../data/reports/hbs_waste_metrics.txt");
+    std::ofstream metricsFile(reportDir);
     if (metricsFile.is_open()) {
-        metricsFile << "==== HBS Routing Waste Report ====" << '\n';
-        metricsFile << "Total illegal deliveries (waste): " << totalWaste << '\n';
-        metricsFile << "Per-neuron waste (non-zero only):" << '\n';
-        for (const auto& kv : wastePerNeuron) {
-            if (kv.second > 0)
-                metricsFile << "  Neuron " << kv.first << ": " << kv.second << '\n';
-        }
-        metricsFile << "Per-core waste (non-zero only):" << '\n';
-        for (const auto& kv : wastedMessages) {
-            if (kv.second > 0)
-                metricsFile << "  Core " << kv.first << ": " << kv.second << '\n';
-        }
-        metricsFile << "==================================" << "\n";
+        metricsFile << j.dump(4);
         metricsFile.close();
     }
 }

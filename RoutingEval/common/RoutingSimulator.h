@@ -24,6 +24,7 @@ class RoutingSimulator {
 private:
     Utils routingUtils;
     float weightThreshold;
+    string reportDir;
     const std::vector<std::vector<int>>& connectivityMatrix;
     const std::unordered_map<int, int>& neuronToCoreMap;
     const std::unordered_map<int, std::vector<int>>& coreTree;
@@ -43,7 +44,8 @@ public:
                          const std::unordered_map<int, int>& neuronToCoreMap,
                          const std::unordered_map<int, std::vector<int>>& coreTree,
                          const std::unordered_map<int, int>& coreParent,
-                        Utils routingUtils);
+                        Utils routingUtils,
+                        string reportDir);
     
         void simulate();
         void reportWasteStatistics() const;
@@ -51,6 +53,7 @@ public:
         int findLCA(int sourceCore, int targetCore);
         bool isDescendant(int current, int target);
         std::vector<int> shortestPath(int startCore, int endCore);
+        ~RoutingSimulator(){}
 };
 
 #endif // ROUTING_SIMULATOR_H

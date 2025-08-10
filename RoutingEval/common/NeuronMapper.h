@@ -51,6 +51,7 @@ public:
     void exportCoreNeuronMapToJson(const std::string& filename) const; 
     void logCoreTreeRecursive(int node, const std::unordered_map<int, std::vector<int>>& core_tree, std::ostream& out, std::string prefix, bool isLeft, int max_leaf_id);
     void serializeCoreTree(int node, const std::unordered_map<int, std::vector<int>>& core_tree, json& j) const;
+    ~NeuronMapper(){}
 };
 
 #endif // NEURON_MAPPER_H

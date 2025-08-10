@@ -19,21 +19,35 @@ using json = nlohmann::json;
 
 using namespace std;
 
-Utils::Utils(string matrixFilePath): connectivityMatrixFilePath(matrixFilePath) {
+Utils::Utils() {
         weightThreshold = 0.0435f;
         logFileName = createLogFileName();
-        logToFile("Utils initialized");
-        // Load the connectivity matrix from the specified file
-        try{
-            connectivityMatrix = loadConnectivityMatrix(connectivityMatrixFilePath);
-        } catch (const exception& e) {
-            cerr << "Error loading connectivity matrix: " << e.what() << endl;
-            logToFile("Error loading connectivity matrix: " + string(e.what()));
-            return;
-        }
-        logToFile("Connectivity matrix loaded from: " + connectivityMatrixFilePath);
-        logToFile("Connectivity matrix dimensions: " + to_string(connectivityMatrix.size()) + "x" + to_string(connectivityMatrix[0].size()));
+        logToFile("Utils initialized, logging started...");
+        // // Load the connectivity matrix from the specified file
+        // try{
+        //     connectivityMatrix = loadConnectivityMatrix(connectivityMatrixFilePath);
+        // } catch (const exception& e) {
+        //     cerr << "Error loading connectivity matrix: " << e.what() << endl;
+        //     logToFile("Error loading connectivity matrix: " + string(e.what()));
+        //     return;
+        // }
+        // logToFile("Connectivity matrix loaded from: " + connectivityMatrixFilePath);
+        // logToFile("Connectivity matrix dimensions: " + to_string(connectivityMatrix.size()) + "x" + to_string(connectivityMatrix[0].size()));
         //printConnectivityMatrix();
+}
+
+void Utils::setConnectivityMatrix(string matrixFilePath){
+    connectivityMatrixFilePath = matrixFilePath;
+    logToFile("NEW SAMPLE DATA LOADED.");
+    try{
+        connectivityMatrix = loadConnectivityMatrix(connectivityMatrixFilePath);
+    } catch (const exception& e) {
+        cerr << "Error loading connectivity matrix: " << e.what() << endl;
+        logToFile("Error loading connectivity matrix: " + string(e.what()));
+        return;
+    }
+    logToFile("Connectivity matrix loaded from: " + connectivityMatrixFilePath);
+    logToFile("Connectivity matrix dimensions: " + to_string(connectivityMatrix.size()) + "x" + to_string(connectivityMatrix[0].size()));
 }
 
 void Utils::printConnectivityMatrix() {

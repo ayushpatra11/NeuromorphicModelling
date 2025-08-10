@@ -29,6 +29,7 @@ public:
 
     // Get the list of spiking neurons
     std::vector<int> getSpikingNeurons() const;
+    ~SpikeGenerator(){}
 
 private:
     int num_neurons_;

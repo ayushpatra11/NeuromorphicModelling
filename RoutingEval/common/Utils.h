@@ -6,6 +6,7 @@
 #                and debugging used throughout the neurogrid routing evaluation project.
 #   Version History:        
 #       - 2025-07-26: Initial version
+#       - 2025-08-10: Update definitions for more samples and better logging. 
 #
 ####################################################################################*/
 
@@ -30,12 +31,15 @@ private:
     vector<vector<int>> connectivityMatrix;
     unordered_map<int, int> neuronCoreMap;
 public:
-    Utils(string matrixFilePath);
+    Utils(); // updated definition
 	// Prints a matrix to stdout (for debug)
 	void printConnectivityMatrix();
 
     // Prints a matrix to stdout (for debug)
 	void printNeuronMap();
+
+    //to set the new sample [added for 50 samples]
+    void setConnectivityMatrix(string matrixFilePath);
 
 	// Reads a plain text matrix from a file
 	vector<vector<int>> loadConnectivityMatrix(const string& filePath);
@@ -68,6 +72,8 @@ public:
     void setNeuronCoreMap(const unordered_map<int, int>& map) {
         neuronCoreMap = map;
     }
+
+    ~Utils(){}
 
 };
 

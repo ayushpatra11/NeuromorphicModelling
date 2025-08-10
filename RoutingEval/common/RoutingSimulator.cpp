@@ -20,6 +20,9 @@
 #include <set>
 #include <algorithm>
 #include <fstream>
+// Write JSON summary to file using nlohmann::json
+#include <nlohmann/json.hpp>
+nlohmann::json j;
 
 // Definition for the root core used in LCA checks
 const int rootCore = 30;
@@ -28,12 +31,15 @@ RoutingSimulator::RoutingSimulator(const std::vector<std::vector<int>>& connecti
                                    const std::unordered_map<int, int>& neuronToCoreMap,
                                    const std::unordered_map<int, std::vector<int>>& coreTree,
                                    const std::unordered_map<int, int>& coreParent,
-                                   Utils routingUtils)
+                                   Utils routingUtils,
+                                   string reportDir
+                                )
     : connectivityMatrix(connectivityMatrix),
       neuronToCoreMap(neuronToCoreMap),
       coreTree(coreTree),
       coreParent(coreParent),
-      routingUtils(routingUtils) {
+      routingUtils(routingUtils),
+      reportDir(reportDir) {
         srand(time(0));
         weightThreshold = 0;
       }
@@ -218,23 +224,25 @@ void RoutingSimulator::simulate() {
     }
     routingUtils.logToFile("==================================");
 
-    // Write the same summary to a file
-    {
-        std::ofstream out("../data/reports/neurogrid_waste_metrics.txt");
-        if (out.is_open()) {
-            out << "==== Neurogrid Routing Waste Report ====" << '\n';
-            out << "Total illegal deliveries (waste): " << totalWasteAll << '\n';
-            out << "Per-neuron waste (non-zero only):" << '\n';
-            for (const auto &kv : neuronWaste) {
-                if (kv.second > 0) out << "  Neuron " << kv.first << ": " << kv.second << '\n';
-            }
-            out << "Per-core waste (non-zero only):" << '\n';
-            for (const auto &kv : coreWaste) {
-                if (kv.second > 0) out << "  Core " << kv.first << ": " << kv.second << '\n';
-            }
-            out << "==================================" << '\n';
-            out.close();
-        }
+    j["total_illegal_deliveries"] = totalWasteAll;
+    nlohmann::json per_neuron, per_core;
+    for (const auto& kv : neuronWaste) {
+        if (kv.second > 0)
+            per_neuron[std::to_string(kv.first)] = kv.second;
+    }
+    for (const auto& kv : coreWaste) {
+        if (kv.second > 0)
+            per_core[std::to_string(kv.first)] = kv.second;
+    }
+    j["per_neuron_waste"] = per_neuron;
+    j["per_core_waste"] = per_core;
+
+    // Save to JSON file (replace .txt with .json if present)
+    std::string jsonReportPath = reportDir;
+    std::ofstream jout(jsonReportPath);
+    if (jout.is_open()) {
+        jout << j.dump(4) << std::endl;
+        jout.close();
     }
 }
 

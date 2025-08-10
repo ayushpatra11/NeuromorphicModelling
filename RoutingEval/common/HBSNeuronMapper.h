@@ -54,6 +54,7 @@ public:
     int getRootId() const;
     void logCoreTreeRecursive(int node, const std::unordered_map<int, std::vector<int>>& core_tree, std::ostream& out, std::string prefix, bool isLeft, int max_leaf_id);
     void serializeCoreTree(int node, const std::unordered_map<int, std::vector<int>>& core_tree, json& j) const;
+    ~HBSNeuronMapper(){}
 };
 
 #endif // HBS_NEURON_MAPPER_H
