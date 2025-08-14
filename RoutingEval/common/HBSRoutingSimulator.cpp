@@ -209,6 +209,11 @@ void HBSRoutingSimulator::simulateNeuronToNeuron(int sourceNeuron) {
     unordered_set<int> parentSwitches;
 
     for (int coreId : targetCores) {
+        // Do not send a message to the source's own core, but still log it.
+        if (coreId == sourceCore) {
+            routingUtils.logToFile("[HBS] Target core equals source core (" + std::to_string(coreId) + ") — will not send, only logging.");
+            continue; // skip enqueueing this core into parent routing
+        }
         auto pIt = coreParent.find(coreId);
         if (pIt == coreParent.end()) continue; // orphan core? ignore
         int parent = pIt->second; // parent switch of the core
