@@ -7,46 +7,70 @@
 #   Version History:        
 #       - 2025-07-26: Initial version
 #       - 2025-07-26: Refactored to integrate ConnectivityMatrix and NeuronMapper
+#       - 2025-08-10: Added support for HBS routing and also for multiple samples
 #
 ####################################################################################*/
 
 #include "RoutingSimulator.h"
 #include "NeuronMapper.h"
+#include "HBSNeuronMapper.h"
+#include "HBSRoutingSimulator.h"
 #include "Utils.h"
 #include <iostream>
 
 using namespace std;
 
+#define NUM_NEURONS 512
+#define NUM_SAMPLES 50
+#define NUM_MAPPINGS 10
+
 int main() {
-    // Loading the connectivity matrix from a file
-    string matrixFilePath = "../data/dynamic_connectivity_matrix.json";
-    Utils routingUtils(matrixFilePath);
-    vector<vector<int>> connectivityMatrix = routingUtils.getConnectivityMatrix();
-    if (connectivityMatrix.empty()) {
-        cerr << "Failed to load connectivity matrix. Exiting." << endl;
-        return 1;
+    Utils routingUtils;
+    vector<int> neuronsPerCore = {16, 32, 64};
+
+    for(int mapping = 1; mapping <=NUM_MAPPINGS; mapping++){
+
+        for(int neurons_per_core : neuronsPerCore){
+
+            for(int i = 1; i<=NUM_SAMPLES; i++){
+
+                string matrixFilePath = "../data/connectivity_matrix/dynamic_connectivity_matrix_"+to_string(i)+".json";
+                routingUtils.setConnectivityMatrix(matrixFilePath);
+                vector<vector<int>> connectivityMatrix = routingUtils.getConnectivityMatrix();
+                if (connectivityMatrix.empty()) {
+                    cerr << "Failed to load connectivity matrix. Exiting." << endl;
+                    return 1;
+                }
+
+                string reportDirectoryNeurogrid = "../../../scratch/data/reports/mapping"+to_string(mapping)+"/reports_"+to_string(NUM_NEURONS)+"_"+to_string(neurons_per_core)+"/neurogrid/waste_metrics_sample"+to_string(i)+".json";
+                string reportDirectoryHBS = "../../../scratch/data/reports/mapping"+to_string(mapping)+"/reports_"+to_string(NUM_NEURONS)+"_"+to_string(neurons_per_core)+"/hbs/waste_metrics_sample"+to_string(i)+".json";
+                NeuronMapper neuronMapper(NUM_NEURONS, neurons_per_core, connectivityMatrix);
+                HBSNeuronMapper hbsNeuronMapper(NUM_NEURONS, neurons_per_core, connectivityMatrix);
+                routingUtils.logToFile("NeuronMapper initialized for Neurogrid and HBS routing approaches. Check \"RoutingEval/data/hbs_core_tree.txt\" and \"RoutingEval/data/core_tree.txt\"...");
+
+                routingUtils.setNeuronCoreMap(neuronMapper.getNeuronToCoreMap());
+                //routingUtils.printNeuronMap();
+
+                routingUtils.logToFile("\n\n\n========================STARTING NEUROGRID SIMULATION "+to_string(i)+" FOR "+to_string(neurons_per_core)+" NEURONS PER CORE "+"===========================================================\n\n\n");
+                // Initialize RoutingSimulator and run simulation
+                RoutingSimulator simulator(connectivityMatrix,
+                                        neuronMapper.getNeuronToCoreMap(),
+                                        neuronMapper.getCoreTree(), neuronMapper.getCoreParent(), routingUtils, reportDirectoryNeurogrid);
+                simulator.simulate();
+
+                routingUtils.logToFile("\n\n\n========================ENDING NEUROGRID SIMULATION "+to_string(i)+" FOR "+to_string(neurons_per_core)+" NEURONS PER CORE "+"===========================================================\n\n\n");
+
+                routingUtils.logToFile("\n\n\n========================STARTING HBS SIMULATION "+to_string(i)+" FOR "+to_string(neurons_per_core)+" NEURONS PER CORE "+"===========================================================\n\n\n");
+                HBSRoutingSimulator sim(connectivityMatrix, hbsNeuronMapper.getNeuronToCoreMap(),
+                                        hbsNeuronMapper.getCoreTree(), hbsNeuronMapper.getCoreParent(), routingUtils, reportDirectoryHBS);
+                sim.simulate();                
+                sim.reportWasteStatistics();
+
+                routingUtils.logToFile("\n\n\n========================ENDING HBS SIMULATION "+to_string(i)+" FOR "+to_string(neurons_per_core)+" NEURONS PER CORE "+"===========================================================\n\n\n");
+            
+            }
+        }
     }
-
-    NeuronMapper neuronMapper(512, 32, connectivityMatrix);
-    routingUtils.logToFile("NeuronMapper initialized...");
-
-    routingUtils.setNeuronCoreMap(neuronMapper.getNeuronToCoreMap());
-    //routingUtils.printNeuronMap();
-
-    // Initialize RoutingSimulator and run simulation
-    RoutingSimulator simulator(connectivityMatrix,
-                               neuronMapper.getNeuronToCoreMap(),
-                               neuronMapper.getCoreTree(), neuronMapper.getCoreParent(), routingUtils);
-    simulator.simulate();
-
-    // Retrieve and print routing waste
-    // auto waste = simulator.getWastedMessagesPerCore();
-    // int totalWaste = 0;
-    // for (const auto& [core, count] : waste) {
-    //     cout << "Core " << core << " wasted messages: " << count << endl;
-    //     totalWaste += count;
-    // }
-    // cout << "Total routing waste: " << totalWaste << endl;
-
+        
     return 0;
 }

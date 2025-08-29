@@ -22,7 +22,7 @@
 #include <fstream>
 #include "nlohmann/json.hpp"  // If you're using JSON (https://github.com/nlohmann/json)
 
-
+using json = nlohmann::json;
 
 class NeuronMapper {
 private:
@@ -40,6 +40,7 @@ private:
 public:
     NeuronMapper(int total_neurons, int neurons_per_core, const std::vector<std::vector<int>>& conn_matrix);
     void mapNeurons();
+    void assignNeuronsToCores();
     int getCoreForNeuron(int neuron_id) const;
     const std::unordered_map<int, int>& getNeuronToCoreMap() const;
     const std::unordered_map<int, std::vector<int>>& getCoreTree() const;
@@ -48,6 +49,9 @@ public:
     int getTotalCores() const;
     void exportCoreTreeToJson(const std::string& filename) const;
     void exportCoreNeuronMapToJson(const std::string& filename) const; 
+    void logCoreTreeRecursive(int node, const std::unordered_map<int, std::vector<int>>& core_tree, std::ostream& out, std::string prefix, bool isLeft, int max_leaf_id);
+    void serializeCoreTree(int node, const std::unordered_map<int, std::vector<int>>& core_tree, json& j) const;
+    ~NeuronMapper(){}
 };
 
 #endif // NEURON_MAPPER_H

@@ -4,12 +4,17 @@
 CXX := g++
 CXXFLAGS := -std=c++17 -I./ -I./nlohmann -Wall -Wextra
 
+# Directories
+BUILDDIR := ../build
+SRCDIR := .
+BINDIR := $(BUILDDIR)
+
 # Sources and objects
-SRC := main.cpp Utils.cpp NeuronMapper.cpp RoutingSimulator.cpp
-OBJ := $(SRC:.cpp=.o)
+SRC := main.cpp Utils.cpp NeuronMapper.cpp HBSNeuronMapper.cpp HBSRoutingSimulator.cpp RoutingSimulator.cpp
+OBJ := $(patsubst %.cpp,$(BUILDDIR)/%.o,$(SRC))
 
 # Target
-TARGET := RunSimulator
+TARGET := $(BINDIR)/RunSimulator
 
 # Default rule
 all: $(TARGET)
@@ -19,12 +24,16 @@ $(TARGET): $(OBJ)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
 # Compile source files
-%.o: %.cpp
+$(BUILDDIR)/%.o: %.cpp | $(BUILDDIR)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+# Create build directory if not exists
+$(BUILDDIR):
+	mkdir -p $(BUILDDIR)
 
 # Clean build artifacts
 clean:
-	rm -f $(OBJ) $(TARGET)
+	rm -rf $(BUILDDIR)
 
 # Phony targets
 .PHONY: all clean

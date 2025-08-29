@@ -28,31 +28,31 @@ model = SpikingNet(v)
 model.load_state_dict(torch.load("best_trained.pth", map_location=torch.device("cpu")))
 model.eval()
 
+num_samples = 50
+
 # Load the test dataset
 test_set = BinaryNavigationDataset(seq_len=v.num_steps, n_neuron=v.num_inputs, recall_duration=v.recall_duration,
                                    p_group=v.p_group, f0=40./100., n_cues=v.n_cues, t_cue=v.t_cue,
-                                   t_interval=v.t_cue_spacing, n_input_symbols=4, length=1)
+                                   t_interval=v.t_cue_spacing, n_input_symbols=4, length=num_samples)
 test_loader = DataLoader(test_set, batch_size=1, shuffle=False)
 
 print("Model and test data loaded successfully.")
 
-# Initialize spike propagation tracker
 num_neurons = v.num_hidden1
-firing_matrix = torch.zeros(num_neurons, num_neurons)  # [source, target]
-neuron_spike_count = torch.zeros(num_neurons)
 
-t=1
 s=1
 
 # Evaluate spike propagation
 with torch.no_grad():
     source_to_all_targets_per_timestep = defaultdict(list)
     for data, _ in test_loader:
-        #break  # Process only one sample
+        # Initialize spike propagation tracker for this sample
+        firing_matrix = torch.zeros(num_neurons, num_neurons)  # [source, target]
+        neuron_spike_count = torch.zeros(num_neurons)
+
         _, _, spk1_rec = model(data, time_first=False)  # [time, batch, neuron]
         spk1_rec = spk1_rec.squeeze(1)  # [time, neuron]
         print(f"Sample{s}")
-        s = s+1
         for t in range(v.num_steps - 1):
             print(f"Evaluating timestep {t}...")
             sources = (spk1_rec[t] > 0).nonzero(as_tuple=True)[0]
@@ -65,15 +65,26 @@ with torch.no_grad():
                 for tgt in targets:
                     firing_matrix[src_id][tgt.item()] += 1
 
-# Threshold to generate binary connectivity
-top_k = 100
-connectivity_matrix = torch.zeros_like(firing_matrix, dtype=torch.int)
+        # Threshold to generate binary connectivity
+        top_k = 100
+        connectivity_matrix = torch.zeros_like(firing_matrix, dtype=torch.int)
 
-for src in range(num_neurons):
-    if neuron_spike_count[src] == 0:
-        continue
-    topk_vals, topk_indices = torch.topk(firing_matrix[src], k=top_k)
-    connectivity_matrix[src, topk_indices] = 1
+        for src in range(num_neurons):
+            if neuron_spike_count[src] == 0:
+                continue
+            topk_vals, topk_indices = torch.topk(firing_matrix[src], k=top_k)
+            connectivity_matrix[src, topk_indices] = 1
+
+        # Save matrix as JSON for this sample
+        filename = f"../RoutingEval/data/connectivity_matrix/dynamic_connectivity_matrix_{s}.json"
+        with open(filename, "w") as f:
+            json.dump(connectivity_matrix.tolist(), f, indent=2)
+
+        print(f"Connectivity matrix extracted and saved to {filename}.")
+        print("Neuron firing counts over time steps:")
+        for idx, count in enumerate(neuron_spike_count.tolist()):
+            print(f"Neuron {idx}: {int(count)} spikes")
+        s = s+1
 
 print("\nChecking for path consistency (using Jaccard similarity threshold)...")
 
@@ -108,12 +119,3 @@ for src, all_target_sets in source_to_all_targets_per_timestep.items():
             print(f"  - Group {i+1} ({group['count']} times): {sorted(list(group['ref']))[:5]}... ({len(group['ref'])} targets) at timesteps {group['timesteps']}")
     else:
         print(f"Consistent path for neuron {src}")
-
-# Save matrix as JSON
-with open("../RoutingEval/data/dynamic_connectivity_matrix.json", "w") as f:
-    json.dump(connectivity_matrix.tolist(), f, indent=2)
-
-print("Connectivity matrix extracted and saved to dynamic_connectivity_matrix.json.")
-print("Neuron firing counts over time steps:")
-for idx, count in enumerate(neuron_spike_count.tolist()):
-    print(f"Neuron {idx}: {int(count)} spikes")

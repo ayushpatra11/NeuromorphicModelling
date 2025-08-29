@@ -19,6 +19,10 @@
 #include <random>
 #include <set>
 #include <algorithm>
+#include <fstream>
+// Write JSON summary to file using nlohmann::json
+#include <nlohmann/json.hpp>
+nlohmann::json j;
 
 // Definition for the root core used in LCA checks
 const int rootCore = 30;
@@ -27,12 +31,15 @@ RoutingSimulator::RoutingSimulator(const std::vector<std::vector<int>>& connecti
                                    const std::unordered_map<int, int>& neuronToCoreMap,
                                    const std::unordered_map<int, std::vector<int>>& coreTree,
                                    const std::unordered_map<int, int>& coreParent,
-                                   Utils routingUtils)
+                                   Utils routingUtils,
+                                   string reportDir
+                                )
     : connectivityMatrix(connectivityMatrix),
       neuronToCoreMap(neuronToCoreMap),
       coreTree(coreTree),
       coreParent(coreParent),
-      routingUtils(routingUtils) {
+      routingUtils(routingUtils),
+      reportDir(reportDir) {
         srand(time(0));
         weightThreshold = 0;
       }
@@ -40,6 +47,8 @@ RoutingSimulator::RoutingSimulator(const std::vector<std::vector<int>>& connecti
 void RoutingSimulator::simulate() {
 
     //let us first start with checking the mappings. 
+    std::map<int, int> neuronWaste;  // per-source: number of non-target cores that received
+    std::unordered_map<int, int> coreWaste; // per-core: times it received when not a target
     
     int numNeurons = connectivityMatrix.size();
     for (int src = 0; src < numNeurons; ++src) {
@@ -186,13 +195,54 @@ void RoutingSimulator::simulate() {
         for (int leaf : leafDescendants) {
             if (actualTargetCores.find(leaf) == actualTargetCores.end()) {
                 routingUtils.logToFile("Core-level waste: core " + std::to_string(leaf) + " under LCA " + std::to_string(lcaCore) + " was not a target.");
+                coreWaste[leaf]++;
                 totalCoreWaste++;
             }
         }
 
         routingUtils.logToFile("Total core-level routing waste: " + std::to_string(totalCoreWaste));
+        neuronWaste[src] = totalCoreWaste;
 
         routingUtils.logToFile("Finished simulation for source neuron " + std::to_string(src));
+    }
+
+    // === Final waste summary (core-level only) ===
+    long long totalWasteAll = 0;
+    for (const auto &kv : neuronWaste) totalWasteAll += kv.second;
+
+    routingUtils.logToFile("\n==== Neurogrid Routing Waste Report ====");
+    routingUtils.logToFile("Total illegal deliveries (waste): " + std::to_string(totalWasteAll));
+
+    routingUtils.logToFile("Per-neuron waste (non-zero only):");
+    for (const auto &kv : neuronWaste) {
+        if (kv.second > 0) routingUtils.logToFile("  Neuron " + std::to_string(kv.first) + ": " + std::to_string(kv.second));
+    }
+
+    routingUtils.logToFile("Per-core waste (non-zero only):");
+    for (const auto &kv : coreWaste) {
+        if (kv.second > 0) routingUtils.logToFile("  Core " + std::to_string(kv.first) + ": " + std::to_string(kv.second));
+    }
+    routingUtils.logToFile("==================================");
+
+    j["total_illegal_deliveries"] = totalWasteAll;
+    nlohmann::json per_neuron, per_core;
+    for (const auto& kv : neuronWaste) {
+        if (kv.second > 0)
+            per_neuron[std::to_string(kv.first)] = kv.second;
+    }
+    for (const auto& kv : coreWaste) {
+        if (kv.second > 0)
+            per_core[std::to_string(kv.first)] = kv.second;
+    }
+    j["per_neuron_waste"] = per_neuron;
+    j["per_core_waste"] = per_core;
+
+    // Save to JSON file (replace .txt with .json if present)
+    std::string jsonReportPath = reportDir;
+    std::ofstream jout(jsonReportPath);
+    if (jout.is_open()) {
+        jout << j.dump(4) << std::endl;
+        jout.close();
     }
 }
 
