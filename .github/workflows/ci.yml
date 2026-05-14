@@ -107,3 +107,33 @@ jobs:
           python -c "from neuromorphic.graph import Graph; print('OK')"
           python -c "from neuromorphic.trainer import Trainer; print('OK')"
           python -c "from neuromorphic import utils; print('OK')"
+
+  # -----------------------------------------------------------------------
+  # End-to-end: train → NIR → activity → simulate → plot (minimal scale)
+  # -----------------------------------------------------------------------
+  e2e:
+    name: End-to-end pipeline
+    runs-on: ubuntu-latest
+    needs: [python, cpp]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install g++ and make
+        run: sudo apt-get update && sudo apt-get install -y g++ make
+
+      - name: Install CPU-only PyTorch and package dependencies
+        run: |
+          pip install --upgrade pip
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -e ".[dev,analysis]" --extra-index-url https://download.pytorch.org/whl/cpu
+
+      - name: Run end-to-end test (1 epoch, 2 samples, 1 mapping)
+        env:
+          WANDB_API_KEY: ""
+        run: make e2e-test

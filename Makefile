@@ -14,7 +14,7 @@
 #   make simulate      run the C++ routing simulation
 #   make clean         remove build artifacts
 
-.PHONY: all pipeline install venv test test-cov lint fmt fmt-check build-cpp clean-cpp \
+.PHONY: all pipeline e2e-test install venv test test-cov lint fmt fmt-check build-cpp clean-cpp \
         train export-nir evaluate-activity evaluate-results simulate clean
 
 # ---------------------------------------------------------------------------
@@ -48,8 +48,8 @@ install: venv
 # ---------------------------------------------------------------------------
 pipeline: train export-nir evaluate-activity simulate evaluate-results
 
-# Quick smoke-test pipeline: 1 epoch, 2 samples, 1 mapping, 16 neurons/core only
-pipeline-quick:
+# Minimal end-to-end test: 1 epoch, 2 samples, 1 mapping — fast CI / local sanity check
+e2e-test:
 	$(PYTHON) scripts/train.py --save $(CHECKPOINT) --num-epochs 1
 	mkdir -p $(NIR_DIR)
 	$(PYTHON) scripts/export_nir.py --checkpoint $(CHECKPOINT) --out-dir $(NIR_DIR)
