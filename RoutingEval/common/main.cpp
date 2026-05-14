@@ -20,9 +20,15 @@
 
 using namespace std;
 
+#ifndef NUM_NEURONS
 #define NUM_NEURONS 512
+#endif
+#ifndef NUM_SAMPLES
 #define NUM_SAMPLES 50
+#endif
+#ifndef NUM_MAPPINGS
 #define NUM_MAPPINGS 10
+#endif
 
 int main() {
     Utils routingUtils;
