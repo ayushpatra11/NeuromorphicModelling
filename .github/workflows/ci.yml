@@ -136,4 +136,4 @@ jobs:
       - name: Run end-to-end test (1 epoch, 2 samples, 1 mapping)
         env:
           WANDB_API_KEY: ""
-        run: make e2e-test
+        run: make e2e-test PYTHON=python3
