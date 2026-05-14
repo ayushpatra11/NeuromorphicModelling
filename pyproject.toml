@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "neuromorphic-modelling"
+version = "0.1.0"
+description = "SNN-based neuromorphic routing simulation and evaluation"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "torch>=2.4.0",
+    "snntorch>=0.9.1",
+    "nir>=1.0.1",
+    "nirtorch>=1.0",
+    "networkx>=3.1",
+    "matplotlib>=3.7.5",
+    "numpy>=1.24.4",
+    "h5py>=3.11.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "ruff>=0.4.0",
+]
+sweep = [
+    "wandb>=0.16.0",
+]
+analysis = [
+    "seaborn>=0.12.0",
+    "pandas>=2.0.3",
+]
+
+[project.scripts]
+nm-train     = "scripts.train:main"
+nm-export    = "scripts.export_nir:main"
+nm-activity  = "scripts.evaluate_activity:main"
+nm-results   = "scripts.evaluate_results:main"
+
+[tool.setuptools.packages.find]
+include = ["neuromorphic*", "scripts*"]
+
+[tool.pytest.ini_options]
+testpaths    = ["tests"]
+python_files = ["test_*.py"]
+addopts      = "-v --tb=short"
+
+[tool.ruff]
+target-version = "py310"
+line-length    = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]   # allow assert in tests

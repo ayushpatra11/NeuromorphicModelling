@@ -1,0 +1,139 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]   # run on every branch push
+  pull_request:
+    branches: [main]   # run on PRs targeting main
+
+# Cancel in-progress runs on the same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # -----------------------------------------------------------------------
+  # Python – lint, type-check, unit tests
+  # -----------------------------------------------------------------------
+  python:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+
+      - name: Install CPU-only PyTorch and package dependencies
+        run: |
+          pip install --upgrade pip
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -e ".[dev]" --extra-index-url https://download.pytorch.org/whl/cpu
+
+      - name: Lint with ruff
+        run: |
+          ruff check neuromorphic/ tests/ scripts/
+          ruff format --check neuromorphic/ tests/ scripts/
+
+      - name: Run unit tests with coverage
+        env:
+          WANDB_API_KEY: ""   # Ensure WandB is disabled in CI
+        run: |
+          pytest tests/ -v --tb=short \
+            --cov=neuromorphic \
+            --cov-report=term-missing \
+            --cov-report=xml
+
+      - name: Upload coverage report
+        if: matrix.python-version == '3.11'
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: false
+
+  # -----------------------------------------------------------------------
+  # C++ – build the routing simulator
+  # -----------------------------------------------------------------------
+  cpp:
+    name: C++ build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install g++ and make
+        run: sudo apt-get update && sudo apt-get install -y g++ make
+
+      - name: Build routing simulator
+        run: make -C RoutingEval/common
+
+      - name: Verify binary exists
+        run: test -f RoutingEval/build/RunSimulator
+
+  # -----------------------------------------------------------------------
+  # Quick smoke test: verify all scripts are importable
+  # -----------------------------------------------------------------------
+  smoke:
+    name: Script imports
+    runs-on: ubuntu-latest
+    needs: python
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -e ".[dev]" --extra-index-url https://download.pytorch.org/whl/cpu
+
+      - name: Import smoke test
+        run: |
+          python -c "from neuromorphic import SpikingNet, ModelConfig, NavDataset; print('OK')"
+          python -c "from neuromorphic.mapping import Mapping; print('OK')"
+          python -c "from neuromorphic.graph import Graph; print('OK')"
+          python -c "from neuromorphic.trainer import Trainer; print('OK')"
+          python -c "from neuromorphic import utils; print('OK')"
+
+  # -----------------------------------------------------------------------
+  # End-to-end: train → NIR → activity → simulate → plot (minimal scale)
+  # -----------------------------------------------------------------------
+  e2e:
+    name: End-to-end pipeline
+    runs-on: ubuntu-latest
+    needs: [python, cpp]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install g++ and make
+        run: sudo apt-get update && sudo apt-get install -y g++ make
+
+      - name: Install CPU-only PyTorch and package dependencies
+        run: |
+          pip install --upgrade pip
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -e ".[dev,analysis]" --extra-index-url https://download.pytorch.org/whl/cpu
+
+      - name: Run end-to-end test (1 epoch, 2 samples, 1 mapping)
+        env:
+          WANDB_API_KEY: ""
+        run: make e2e-test PYTHON=python3
