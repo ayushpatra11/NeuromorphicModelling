@@ -17,8 +17,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from neuromorphic.mapping import Mapping
+from neuromorphic.utils import setup_logging
 
-logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+setup_logging("map_neurons")
 logger = logging.getLogger(__name__)
 
 

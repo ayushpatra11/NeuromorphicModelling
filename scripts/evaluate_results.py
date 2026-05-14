@@ -24,7 +24,9 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+from neuromorphic.utils import setup_logging
+
+setup_logging("evaluate_results")
 logger = logging.getLogger(__name__)
 
 

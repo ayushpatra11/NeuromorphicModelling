@@ -29,8 +29,9 @@ from neuromorphic.config import ModelConfig
 from neuromorphic.dataset import NavDataset
 from neuromorphic.model import SpikingNet
 from neuromorphic.trainer import Trainer
+from neuromorphic.utils import setup_logging
 
-logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+setup_logging("train")
 logger = logging.getLogger(__name__)
 
 
@@ -179,10 +180,15 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Train SNN for binary navigation task")
     parser.add_argument("--sweep", action="store_true", help="Run WandB hyperparameter sweep")
     parser.add_argument("--save", default="model.pth", help="Output model checkpoint path")
+    parser.add_argument(
+        "--num-epochs", type=int, default=None, help="Override number of training epochs"
+    )
     args = parser.parse_args()
 
     cfg = ModelConfig()
     cfg.train = True
+    if args.num_epochs is not None:
+        cfg.num_epochs = args.num_epochs
 
     if args.sweep:
         run_sweep()

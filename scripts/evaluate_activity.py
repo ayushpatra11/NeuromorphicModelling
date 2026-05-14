@@ -30,8 +30,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from neuromorphic.config import ModelConfig
 from neuromorphic.dataset import NavDataset
 from neuromorphic.model import SpikingNet
+from neuromorphic.utils import setup_logging
 
-logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+setup_logging("evaluate_activity")
 logger = logging.getLogger(__name__)
 
 

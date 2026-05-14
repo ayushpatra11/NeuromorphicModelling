@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import datetime
 import logging
+import os
 import random
 from typing import Any
 
@@ -11,6 +13,34 @@ import torch
 import torch.nn as nn
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Logging setup
+# ---------------------------------------------------------------------------
+
+
+def setup_logging(name: str, log_dir: str = "logs") -> str:
+    """Log to both terminal and a timestamped file. Returns the log file path."""
+    os.makedirs(log_dir, exist_ok=True)
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    log_path = os.path.join(log_dir, f"{name}_{timestamp}.log")
+
+    fmt = logging.Formatter("%(levelname)s %(message)s")
+    root = logging.getLogger()
+    root.setLevel(logging.INFO)
+    root.handlers.clear()
+
+    fh = logging.FileHandler(log_path)
+    fh.setFormatter(fmt)
+    root.addHandler(fh)
+
+    sh = logging.StreamHandler()
+    sh.setFormatter(fmt)
+    root.addHandler(sh)
+
+    print(f"Log file: {log_path}  |  tail -f {log_path}")
+    return log_path
 
 
 # ---------------------------------------------------------------------------
