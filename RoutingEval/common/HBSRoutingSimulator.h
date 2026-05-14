@@ -23,13 +23,14 @@
 
 class HBSRoutingSimulator {
 private:
+    // Declaration order matches the constructor initializer-list order to avoid -Wreorder
     Utils routingUtils;
     float weightThreshold;
-    string reportDir;
     const std::vector<std::vector<int>>& connectivityMatrix;
     const std::unordered_map<int, int>& neuronToCoreMap;
     const std::unordered_map<int, std::vector<int>>& coreTree;
     const std::unordered_map<int, int>& coreParent;
+    string reportDir;
     
     std::unordered_map<int, std::unordered_set<int>> actualTargetsPerNeuron;
     std::unordered_map<int, std::unordered_set<int>> visitedNeuronsPerNeuron;

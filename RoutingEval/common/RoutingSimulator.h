@@ -22,13 +22,14 @@
 
 class RoutingSimulator {
 private:
-    Utils routingUtils;
-    float weightThreshold;
-    string reportDir;
+    // Declaration order matches the constructor initializer-list order to avoid -Wreorder
     const std::vector<std::vector<int>>& connectivityMatrix;
     const std::unordered_map<int, int>& neuronToCoreMap;
     const std::unordered_map<int, std::vector<int>>& coreTree;
     const std::unordered_map<int, int>& coreParent;
+    Utils routingUtils;
+    float weightThreshold;
+    string reportDir;
     
     std::unordered_map<int, std::unordered_set<int>> actualTargetsPerNeuron;
     std::unordered_map<int, std::unordered_set<int>> visitedNeuronsPerNeuron;

@@ -1,10 +1,38 @@
+# Python artefacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# WandB
+wandb/
+
+# Model checkpoints
+*.pth
+*.pt
+
+# Data files (generated)
 *.json
 *.h5
-SNNTraining/__pycache__
-SNNTraining/wandb/
 *.png
-*.pth
-SNNTraining/neuro_eval_env/
+
+# C++ build output (tracked separately under RoutingEval/build)
 *.o
-main
-*.txt
+
+# Test / coverage
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# OS / editor
+.DS_Store
+*.swp
+tags

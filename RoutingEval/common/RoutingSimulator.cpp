@@ -149,7 +149,7 @@ void RoutingSimulator::simulate() {
         std::unordered_set<int> visited;
 
         int i = 0;
-        while (i < upPath.size() && upPath[i] != rootCore && upPath[i] != lcaCore) {
+        while (i < static_cast<int>(upPath.size()) && upPath[i] != rootCore && upPath[i] != lcaCore) {
             routingPath += "U";
             visited.insert(upPath[i]);
             ++i;
@@ -159,7 +159,7 @@ void RoutingSimulator::simulate() {
             routingPath += "B";  // reached LCA directly
         } else {
             routingPath += "D";  // start descent to LCA
-            for (++i; i < upPath.size(); ++i) {
+            for (++i; i < static_cast<int>(upPath.size()); ++i) {
                 int parent = upPath[i - 1];
                 int child = upPath[i];
                 routingPath += (child < parent ? "L" : "R");
