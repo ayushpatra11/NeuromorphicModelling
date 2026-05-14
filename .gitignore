@@ -11,6 +11,10 @@ build/
 venv/
 env/
 
+# Generated outputs
+outputs/
+logs/
+
 # WandB
 wandb/
 
