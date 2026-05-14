@@ -69,10 +69,28 @@ int main() {
                 routingUtils.logToFile("\n\n\n========================STARTING HBS SIMULATION "+to_string(i)+" FOR "+to_string(neurons_per_core)+" NEURONS PER CORE "+"===========================================================\n\n\n");
                 HBSRoutingSimulator sim(connectivityMatrix, hbsNeuronMapper.getNeuronToCoreMap(),
                                         hbsNeuronMapper.getCoreTree(), hbsNeuronMapper.getCoreParent(), routingUtils, reportDirectoryHBS);
-                sim.simulate();                
+                sim.simulate();
                 sim.reportWasteStatistics();
 
                 routingUtils.logToFile("\n\n\n========================ENDING HBS SIMULATION "+to_string(i)+" FOR "+to_string(neurons_per_core)+" NEURONS PER CORE "+"===========================================================\n\n\n");
+
+                // Side-by-side comparison
+                long long neurGridWaste = simulator.getTotalWaste();
+                long long hbsWaste      = sim.getTotalWaste();
+                routingUtils.logToFile("\n------------------------------------------------------------");
+                routingUtils.logToFile("COMPARISON  |  mapping=" + to_string(mapping) +
+                                       "  sample=" + to_string(i) +
+                                       "  neurons_per_core=" + to_string(neurons_per_core));
+                routingUtils.logToFile("  Neurogrid total waste : " + to_string(neurGridWaste));
+                routingUtils.logToFile("  HBS       total waste : " + to_string(hbsWaste));
+                long long diff = neurGridWaste - hbsWaste;
+                if (diff > 0)
+                    routingUtils.logToFile("  HBS saves " + to_string(diff) + " illegal deliveries vs Neurogrid");
+                else if (diff < 0)
+                    routingUtils.logToFile("  Neurogrid saves " + to_string(-diff) + " illegal deliveries vs HBS");
+                else
+                    routingUtils.logToFile("  Both techniques produce equal waste");
+                routingUtils.logToFile("------------------------------------------------------------\n");
             
             }
         }

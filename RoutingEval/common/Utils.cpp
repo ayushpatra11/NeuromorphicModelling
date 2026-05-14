@@ -14,7 +14,8 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include "nlohmann/json.hpp" 
+#include <sys/stat.h>
+#include "nlohmann/json.hpp"
 using json = nlohmann::json;
 
 using namespace std;
@@ -106,9 +107,14 @@ void Utils::logToFile(const string& message) {
     tm* localTime = localtime(&now);
     char buffer[80];
     strftime(buffer, sizeof(buffer), "[%Y-%m-%d_%H-%M-%S]: ", localTime);
+
+    // Print to terminal
+    cout << buffer << message << endl;
+
+    // Write to file
     ofstream outFile(logFileName, ios_base::app);
     if (outFile.is_open()) {
-        outFile <<buffer << message << endl;
+        outFile << buffer << message << endl;
         outFile.close();
     } else {
         cerr << "Unable to open log file: " << logFileName << endl;
@@ -116,7 +122,8 @@ void Utils::logToFile(const string& message) {
 }
 
 string Utils::createLogFileName(){
-    //creating a log file name with the current date and time
+    // Ensure the logs directory exists before writing
+    mkdir("../logs", 0755);
     time_t now = time(0);
     tm* localTime = localtime(&now);
     char buffer[80];

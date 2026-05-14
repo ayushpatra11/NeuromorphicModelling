@@ -50,7 +50,8 @@ public:
                         string reportDir);
     
         void simulate();
-        void reportWasteStatistics() const;
+        void reportWasteStatistics();
+        long long getTotalWaste() const;
         std::unordered_map<int, int> getWastedMessagesPerCore() const;
         int findLCA(int sourceCore, int targetCore);
         bool isDescendant(int current, int target);

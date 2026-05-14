@@ -352,26 +352,42 @@ void HBSRoutingSimulator::traverseTree(int coreId, unordered_set<int>& visitedCo
     for (int child : it->second) traverseTree(child, visitedCores);
 }
 
-void HBSRoutingSimulator::reportWasteStatistics() const {
+void HBSRoutingSimulator::reportWasteStatistics() {
     long long totalWaste = 0;
     for (const auto& kv : wastePerNeuron) totalWaste += kv.second;
 
+    // Log summary to terminal + log file (mirrors Neurogrid report format)
+    routingUtils.logToFile("\n==== HBS Routing Waste Report ====");
+    routingUtils.logToFile("Total illegal deliveries (waste): " + std::to_string(totalWaste));
+
+    routingUtils.logToFile("Per-neuron waste (non-zero only):");
+    for (const auto& kv : wastePerNeuron) {
+        if (kv.second > 0)
+            routingUtils.logToFile("  Neuron " + std::to_string(kv.first) + ": " + std::to_string(kv.second));
+    }
+
+    routingUtils.logToFile("Per-core waste (non-zero only):");
+    for (const auto& kv : wastedMessages) {
+        if (kv.second > 0)
+            routingUtils.logToFile("  Core " + std::to_string(kv.first) + ": " + std::to_string(kv.second));
+    }
+    routingUtils.logToFile("==================================\n");
+
+    // Write JSON report
     nlohmann::json j;
     j["total_illegal_deliveries"] = totalWaste;
 
     nlohmann::json neuronWasteJson = nlohmann::json::object();
     for (const auto& kv : wastePerNeuron) {
-        if (kv.second > 0) {
+        if (kv.second > 0)
             neuronWasteJson[std::to_string(kv.first)] = kv.second;
-        }
     }
     j["per_neuron_waste"] = neuronWasteJson;
 
     nlohmann::json coreWasteJson = nlohmann::json::object();
     for (const auto& kv : wastedMessages) {
-        if (kv.second > 0) {
+        if (kv.second > 0)
             coreWasteJson[std::to_string(kv.first)] = kv.second;
-        }
     }
     j["per_core_waste"] = coreWasteJson;
 
@@ -380,6 +396,12 @@ void HBSRoutingSimulator::reportWasteStatistics() const {
         metricsFile << j.dump(4);
         metricsFile.close();
     }
+}
+
+long long HBSRoutingSimulator::getTotalWaste() const {
+    long long total = 0;
+    for (const auto& kv : wastePerNeuron) total += kv.second;
+    return total;
 }
 
 unordered_map<int, int> HBSRoutingSimulator::getWastedMessagesPerCore() const {

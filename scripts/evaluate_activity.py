@@ -40,6 +40,18 @@ def jaccard_similarity(a: set, b: set) -> float:
     return len(a & b) / len(a | b) if (a or b) else 1.0
 
 
+def _summarize_path_groups(src: int, groups: list[dict], total_events: int) -> None:
+    logger.info("Summary for neuron %d:", src)
+    logger.info("  Total firings: %d", total_events)
+    logger.info("  Path groups identified: %d", len(groups))
+    for i, grp in enumerate(groups):
+        example = sorted(grp["ref"])[:5]
+        logger.info(
+            "    Group %d: %d times, %d targets, example targets: %s",
+            i + 1, grp["count"], len(grp["ref"]), example,
+        )
+
+
 def evaluate_activity(
     model: SpikingNet,
     dataset: NavDataset,
@@ -50,6 +62,7 @@ def evaluate_activity(
     out_dir.mkdir(parents=True, exist_ok=True)
     loader = DataLoader(dataset, batch_size=1, shuffle=False)
     source_to_targets: dict[int, list[tuple[int, set]]] = defaultdict(list)
+    neuron_spike_count = torch.zeros(cfg.num_hidden)
 
     with torch.no_grad():
         for sample_idx, (data, _) in enumerate(loader, start=1):
@@ -59,14 +72,16 @@ def evaluate_activity(
             _, _, spk1_rec = model(data, time_first=False)
             spk1_rec = spk1_rec.squeeze(1)  # [time, neurons]
 
-            logger.info("Processing sample %d", sample_idx)
+            logger.info("Sample %d", sample_idx)
             for t in range(cfg.num_steps - 1):
+                logger.info("  Evaluating timestep %d...", t)
                 sources = (spk1_rec[t] > 0).nonzero(as_tuple=True)[0]
                 targets = (spk1_rec[t + 1] > 0).nonzero(as_tuple=True)[0]
                 tgt_set = set(targets.tolist())
                 for src in sources:
                     sid = src.item()
                     spike_count[sid] += 1
+                    neuron_spike_count[sid] += 1
                     source_to_targets[sid].append((t, tgt_set))
                     for tgt in targets:
                         firing_matrix[sid][tgt.item()] += 1
@@ -83,7 +98,12 @@ def evaluate_activity(
             fname = out_dir / f"dynamic_connectivity_matrix_{sample_idx}.json"
             with open(fname, "w") as f:
                 json.dump(conn.tolist(), f, indent=2)
-            logger.info("Saved connectivity matrix → %s", fname)
+            logger.info("Connectivity matrix extracted and saved → %s", fname)
+
+    # Neuron firing counts
+    logger.info("Neuron firing counts over all samples:")
+    for idx, count in enumerate(neuron_spike_count.tolist()):
+        logger.info("  Neuron %d: %d spikes", idx, int(count))
 
     # Jaccard path-consistency report
     threshold = 0.98
@@ -101,15 +121,18 @@ def evaluate_activity(
             if not matched:
                 groups.append({"ref": tgt_set, "timesteps": [t], "count": 1})
 
+        _summarize_path_groups(src, groups, len(events))
+
         if len(groups) > 1:
-            logger.info(
-                "Neuron %d: %d path variations (firings=%d)",
-                src,
-                len(groups),
-                len(events),
-            )
+            logger.info("  Approximate path variations for neuron %d:", src)
+            for i, grp in enumerate(groups):
+                logger.info(
+                    "    Group %d (%d times): targets %s... (%d total) at timesteps %s",
+                    i + 1, grp["count"],
+                    sorted(grp["ref"])[:5], len(grp["ref"]), grp["timesteps"],
+                )
         else:
-            logger.info("Neuron %d: consistent path (firings=%d)", src, len(events))
+            logger.info("  Consistent path for neuron %d", src)
 
 
 def main() -> None:
