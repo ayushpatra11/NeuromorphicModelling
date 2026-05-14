@@ -48,7 +48,10 @@ def _summarize_path_groups(src: int, groups: list[dict], total_events: int) -> N
         example = sorted(grp["ref"])[:5]
         logger.info(
             "    Group %d: %d times, %d targets, example targets: %s",
-            i + 1, grp["count"], len(grp["ref"]), example,
+            i + 1,
+            grp["count"],
+            len(grp["ref"]),
+            example,
         )
 
 
@@ -128,8 +131,11 @@ def evaluate_activity(
             for i, grp in enumerate(groups):
                 logger.info(
                     "    Group %d (%d times): targets %s... (%d total) at timesteps %s",
-                    i + 1, grp["count"],
-                    sorted(grp["ref"])[:5], len(grp["ref"]), grp["timesteps"],
+                    i + 1,
+                    grp["count"],
+                    sorted(grp["ref"])[:5],
+                    len(grp["ref"]),
+                    grp["timesteps"],
                 )
         else:
             logger.info("  Consistent path for neuron %d", src)
