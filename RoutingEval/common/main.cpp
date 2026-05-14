@@ -48,8 +48,8 @@ int main() {
                     return 1;
                 }
 
-                string reportDirectoryNeurogrid = "../../../scratch/data/reports/mapping"+to_string(mapping)+"/reports_"+to_string(NUM_NEURONS)+"_"+to_string(neurons_per_core)+"/neurogrid/waste_metrics_sample"+to_string(i)+".json";
-                string reportDirectoryHBS = "../../../scratch/data/reports/mapping"+to_string(mapping)+"/reports_"+to_string(NUM_NEURONS)+"_"+to_string(neurons_per_core)+"/hbs/waste_metrics_sample"+to_string(i)+".json";
+                string reportDirectoryNeurogrid = "../data/reports/mapping"+to_string(mapping)+"/reports_"+to_string(NUM_NEURONS)+"_"+to_string(neurons_per_core)+"/neurogrid/waste_metrics_sample"+to_string(i)+".json";
+                string reportDirectoryHBS = "../data/reports/mapping"+to_string(mapping)+"/reports_"+to_string(NUM_NEURONS)+"_"+to_string(neurons_per_core)+"/hbs/waste_metrics_sample"+to_string(i)+".json";
                 NeuronMapper neuronMapper(NUM_NEURONS, neurons_per_core, connectivityMatrix);
                 HBSNeuronMapper hbsNeuronMapper(NUM_NEURONS, neurons_per_core, connectivityMatrix);
                 routingUtils.logToFile("NeuronMapper initialized for Neurogrid and HBS routing approaches. Check \"RoutingEval/data/hbs_core_tree.txt\" and \"RoutingEval/data/core_tree.txt\"...");

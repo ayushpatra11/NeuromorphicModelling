@@ -24,7 +24,8 @@ VENV        ?= .venv
 PYTHON      ?= $(VENV)/bin/python3
 PYTEST      ?= $(VENV)/bin/pytest
 CHECKPOINT  ?= model.pth
-REPORTS_DIR ?= RoutingEval/data/reports
+MAPPING     ?= 1
+REPORTS_DIR ?= RoutingEval/data/reports/mapping$(MAPPING)
 FIGURES_DIR ?= ResultsEvaluation/figures
 CONN_DIR    ?= RoutingEval/data/connectivity_matrix
 NIR_DIR     ?= outputs/nir
@@ -59,11 +60,15 @@ pipeline-quick:
 		--out-dir $(CONN_DIR)
 	$(MAKE) -C RoutingEval/common clean
 	$(MAKE) -C RoutingEval/common CXXFLAGS="-std=c++17 -I./ -I./nlohmann -DNUM_SAMPLES=2 -DNUM_MAPPINGS=1"
-	mkdir -p RoutingEval/data/core_tree RoutingEval/data/connectivity_matrix RoutingEval/data/reports
+	@for npc in 16 32 64; do \
+		mkdir -p RoutingEval/data/reports/mapping1/reports_512_$$npc/neurogrid; \
+		mkdir -p RoutingEval/data/reports/mapping1/reports_512_$$npc/hbs; \
+	done
+	mkdir -p RoutingEval/data/core_tree RoutingEval/data/connectivity_matrix
 	cd RoutingEval/build && ./RunSimulator
 	mkdir -p $(FIGURES_DIR)
 	$(PYTHON) scripts/evaluate_results.py \
-		--reports-dir $(REPORTS_DIR) \
+		--reports-dir RoutingEval/data/reports/mapping1 \
 		--out-dir $(FIGURES_DIR)
 
 # ---------------------------------------------------------------------------
@@ -119,7 +124,13 @@ evaluate-results:
 		--out-dir $(FIGURES_DIR)
 
 simulate: build-cpp
-	mkdir -p RoutingEval/data/core_tree RoutingEval/data/connectivity_matrix RoutingEval/data/reports
+	@for m in $$(seq 1 10); do \
+		for npc in 16 32 64; do \
+			mkdir -p RoutingEval/data/reports/mapping$$m/reports_512_$$npc/neurogrid; \
+			mkdir -p RoutingEval/data/reports/mapping$$m/reports_512_$$npc/hbs; \
+		done; \
+	done
+	mkdir -p RoutingEval/data/core_tree RoutingEval/data/connectivity_matrix
 	@echo "Running C++ routing simulation…"
 	cd RoutingEval/build && ./RunSimulator
 
