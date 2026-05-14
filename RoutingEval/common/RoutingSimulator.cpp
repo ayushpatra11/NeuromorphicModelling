@@ -46,9 +46,9 @@ RoutingSimulator::RoutingSimulator(const std::vector<std::vector<int>>& connecti
 
 void RoutingSimulator::simulate() {
 
-    //let us first start with checking the mappings. 
-    std::map<int, int> neuronWaste;  // per-source: number of non-target cores that received
-    std::unordered_map<int, int> coreWaste; // per-core: times it received when not a target
+    //let us first start with checking the mappings.
+    wastePerNeuron.clear();
+    wastedMessages.clear();
     
     int numNeurons = connectivityMatrix.size();
     for (int src = 0; src < numNeurons; ++src) {
@@ -195,42 +195,42 @@ void RoutingSimulator::simulate() {
         for (int leaf : leafDescendants) {
             if (actualTargetCores.find(leaf) == actualTargetCores.end()) {
                 routingUtils.logToFile("Core-level waste: core " + std::to_string(leaf) + " under LCA " + std::to_string(lcaCore) + " was not a target.");
-                coreWaste[leaf]++;
+                wastedMessages[leaf]++;
                 totalCoreWaste++;
             }
         }
 
         routingUtils.logToFile("Total core-level routing waste: " + std::to_string(totalCoreWaste));
-        neuronWaste[src] = totalCoreWaste;
+        wastePerNeuron[src] = totalCoreWaste;
 
         routingUtils.logToFile("Finished simulation for source neuron " + std::to_string(src));
     }
 
     // === Final waste summary (core-level only) ===
     long long totalWasteAll = 0;
-    for (const auto &kv : neuronWaste) totalWasteAll += kv.second;
+    for (const auto &kv : wastePerNeuron) totalWasteAll += kv.second;
 
     routingUtils.logToFile("\n==== Neurogrid Routing Waste Report ====");
     routingUtils.logToFile("Total illegal deliveries (waste): " + std::to_string(totalWasteAll));
 
     routingUtils.logToFile("Per-neuron waste (non-zero only):");
-    for (const auto &kv : neuronWaste) {
+    for (const auto &kv : wastePerNeuron) {
         if (kv.second > 0) routingUtils.logToFile("  Neuron " + std::to_string(kv.first) + ": " + std::to_string(kv.second));
     }
 
     routingUtils.logToFile("Per-core waste (non-zero only):");
-    for (const auto &kv : coreWaste) {
+    for (const auto &kv : wastedMessages) {
         if (kv.second > 0) routingUtils.logToFile("  Core " + std::to_string(kv.first) + ": " + std::to_string(kv.second));
     }
     routingUtils.logToFile("==================================");
 
     j["total_illegal_deliveries"] = totalWasteAll;
     nlohmann::json per_neuron, per_core;
-    for (const auto& kv : neuronWaste) {
+    for (const auto& kv : wastePerNeuron) {
         if (kv.second > 0)
             per_neuron[std::to_string(kv.first)] = kv.second;
     }
-    for (const auto& kv : coreWaste) {
+    for (const auto& kv : wastedMessages) {
         if (kv.second > 0)
             per_core[std::to_string(kv.first)] = kv.second;
     }
@@ -244,6 +244,12 @@ void RoutingSimulator::simulate() {
         jout << j.dump(4) << std::endl;
         jout.close();
     }
+}
+
+long long RoutingSimulator::getTotalWaste() const {
+    long long total = 0;
+    for (const auto& kv : wastePerNeuron) total += kv.second;
+    return total;
 }
 
 // Computes the Lowest Common Ancestor (LCA) between two cores in the core tree
