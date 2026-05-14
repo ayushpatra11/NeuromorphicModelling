@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: ["**"]   # run on every branch push
   pull_request:
-    branches: [main]
+    branches: [main]   # run on PRs targeting main
 
 # Cancel in-progress runs on the same branch
 concurrency:
@@ -35,9 +35,8 @@ jobs:
       - name: Install CPU-only PyTorch and package dependencies
         run: |
           pip install --upgrade pip
-          # Install CPU-only torch first to avoid pulling in CUDA packages
-          pip install torch==2.4.0 --index-url https://download.pytorch.org/whl/cpu
-          pip install -e ".[dev]"
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -e ".[dev]" --extra-index-url https://download.pytorch.org/whl/cpu
 
       - name: Lint with ruff
         run: |
@@ -98,8 +97,8 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install torch==2.4.0 --index-url https://download.pytorch.org/whl/cpu
-          pip install -e ".[dev]"
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -e ".[dev]" --extra-index-url https://download.pytorch.org/whl/cpu
 
       - name: Import smoke test
         run: |
