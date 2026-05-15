@@ -13,53 +13,53 @@
  **********************************************************************************/
 
 #include "RoutingSimulator.h"
-#include <iostream>
-#include <queue>
-#include <unordered_set>
-#include <random>
-#include <set>
+
 #include <algorithm>
 #include <fstream>
+#include <iostream>
 #include <nlohmann/json.hpp>
+#include <queue>
+#include <random>
+#include <set>
+#include <unordered_set>
 
 RoutingSimulator::RoutingSimulator(const std::vector<std::vector<int>>& connectivityMatrix,
                                    const std::unordered_map<int, int>& neuronToCoreMap,
                                    const std::unordered_map<int, std::vector<int>>& coreTree,
-                                   const std::unordered_map<int, int>& coreParent,
-                                   Utils routingUtils,
-                                   string reportDir
-                                )
+                                   const std::unordered_map<int, int>& coreParent, Utils routingUtils, string reportDir)
     : connectivityMatrix(connectivityMatrix),
       neuronToCoreMap(neuronToCoreMap),
       coreTree(coreTree),
       coreParent(coreParent),
       routingUtils(routingUtils),
       reportDir(reportDir) {
-        srand(time(0));
-        weightThreshold = 0;
-      }
+    srand(time(0));
+    weightThreshold = 0;
+}
 
 void RoutingSimulator::simulate() {
     nlohmann::json j;
 
     int rootCore = -1;
     for (const auto& kv : coreParent) {
-        if (kv.second == -1) { rootCore = kv.first; break; }
+        if (kv.second == -1) {
+            rootCore = kv.first;
+            break;
+        }
     }
 
     wastePerNeuron.clear();
     wastedMessages.clear();
-    
+
     int numNeurons = connectivityMatrix.size();
     for (int src = 0; src < numNeurons; ++src) {
-    // int src = rand() % numNeurons; // Randomly select a source neuron for debuggin only. 
+        // int src = rand() % numNeurons; // Randomly select a source neuron for debuggin only.
 
-        //Printing all target neurons and the target cores. 
-
+        //Printing all target neurons and the target cores.
 
         std::map<int, vector<int>> targetCores;
-        for(int i = 0; i<numNeurons; i++){
-            if(connectivityMatrix[src][i] > weightThreshold && neuronToCoreMap.find(i) != neuronToCoreMap.end()) {
+        for (int i = 0; i < numNeurons; i++) {
+            if (connectivityMatrix[src][i] > weightThreshold && neuronToCoreMap.find(i) != neuronToCoreMap.end()) {
                 int core = neuronToCoreMap.at(i);
                 int sourceCore = neuronToCoreMap.count(src) ? neuronToCoreMap.at(src) : -1;
                 // Skip if target core is the same as source core
@@ -69,12 +69,10 @@ void RoutingSimulator::simulate() {
             }
         }
 
-
-        //For each Neuron, producing a Routing Summary. 
-
+        //For each Neuron, producing a Routing Summary.
 
         routingUtils.logToFile("--- Routing Summary for Neuron " + std::to_string(src) + " ---");
-        routingUtils.logToFile("Number of target cores: "+to_string(targetCores.size()));
+        routingUtils.logToFile("Number of target cores: " + to_string(targetCores.size()));
 
         // In case there are NO target CORES (This neuron did not fire at all during evaluation of 155 time steps)
         if (targetCores.empty()) {
@@ -82,29 +80,29 @@ void RoutingSimulator::simulate() {
             continue;
         }
 
+        //else continue.
 
-        //else continue. 
-
-        // error scenario where core is not found. 
+        // error scenario where core is not found.
         if (neuronToCoreMap.find(src) == neuronToCoreMap.end()) {
             routingUtils.logToFile("Skipping src neuron " + std::to_string(src) + ": no core mapping.");
             continue;
         }
 
-        //find the source core of the nueorn. 
+        //find the source core of the nueorn.
 
         int srcCore = neuronToCoreMap.at(src);
         routingUtils.logToFile("Source neuron " + std::to_string(src) + " belongs to core " + std::to_string(srcCore));
 
-        routingUtils.logToFile("For source neuron "+to_string(src)+" at core "+to_string(srcCore)+" targets are: ");
+        routingUtils.logToFile("For source neuron " + to_string(src) + " at core " + to_string(srcCore) +
+                               " targets are: ");
 
-        //logging the target neurons. 
-        for(auto& it: targetCores){
+        //logging the target neurons.
+        for (auto& it : targetCores) {
             string st = "";
-            for(int num: it.second)
-                st += to_string(num)+", ";
-            routingUtils.logToFile("Core: "+to_string(it.first)+" \n Neurons: "+st);
-            routingUtils.logToFile("Target core " + std::to_string(it.first) + " has " + std::to_string(it.second.size()) + " target neurons.");
+            for (int num : it.second) st += to_string(num) + ", ";
+            routingUtils.logToFile("Core: " + to_string(it.first) + " \n Neurons: " + st);
+            routingUtils.logToFile("Target core " + std::to_string(it.first) + " has " +
+                                   std::to_string(it.second.size()) + " target neurons.");
         }
 
         // Build sets for all visited cores and target cores (excluding srcCore)
@@ -132,7 +130,7 @@ void RoutingSimulator::simulate() {
                 auto minmax = std::minmax_element(actualTargetCores.begin(), actualTargetCores.end());
                 lcaCore = findLCA(*minmax.first, *minmax.second);
             }
-            routingUtils.logToFile("LCA : "+to_string(lcaCore));
+            routingUtils.logToFile("LCA : " + to_string(lcaCore));
             if (coreParent.find(lcaCore) == coreParent.end() && lcaCore != rootCore) {
                 routingUtils.logToFile("Error: coreParent not found for core " + std::to_string(lcaCore));
                 routingUtils.logToFile("LCA was not correctly reached. Ending path without B.");
@@ -167,8 +165,7 @@ void RoutingSimulator::simulate() {
             routingPath += "B";  // reached LCA and chose to broadcast
         }
         routingUtils.logToFile("Route: " + routingPath);
-        for (int tgt : actualTargetCores)
-            routingUtils.logToFile(" -> Core " + std::to_string(tgt));
+        for (int tgt : actualTargetCores) routingUtils.logToFile(" -> Core " + std::to_string(tgt));
 
         // --- Compute waste for other subtrees under the LCA, but only count *leaf* descendants (real cores) ---
         // Identify all leaf descendants of LCA
@@ -194,7 +191,8 @@ void RoutingSimulator::simulate() {
         int totalCoreWaste = 0;
         for (int leaf : leafDescendants) {
             if (actualTargetCores.find(leaf) == actualTargetCores.end()) {
-                routingUtils.logToFile("Core-level waste: core " + std::to_string(leaf) + " under LCA " + std::to_string(lcaCore) + " was not a target.");
+                routingUtils.logToFile("Core-level waste: core " + std::to_string(leaf) + " under LCA " +
+                                       std::to_string(lcaCore) + " was not a target.");
                 wastedMessages[leaf]++;
                 totalCoreWaste++;
             }
@@ -208,31 +206,31 @@ void RoutingSimulator::simulate() {
 
     // === Final waste summary (core-level only) ===
     long long totalWasteAll = 0;
-    for (const auto &kv : wastePerNeuron) totalWasteAll += kv.second;
+    for (const auto& kv : wastePerNeuron) totalWasteAll += kv.second;
 
     routingUtils.logToFile("\n==== Neurogrid Routing Waste Report ====");
     routingUtils.logToFile("Total illegal deliveries (waste): " + std::to_string(totalWasteAll));
 
     routingUtils.logToFile("Per-neuron waste (non-zero only):");
-    for (const auto &kv : wastePerNeuron) {
-        if (kv.second > 0) routingUtils.logToFile("  Neuron " + std::to_string(kv.first) + ": " + std::to_string(kv.second));
+    for (const auto& kv : wastePerNeuron) {
+        if (kv.second > 0)
+            routingUtils.logToFile("  Neuron " + std::to_string(kv.first) + ": " + std::to_string(kv.second));
     }
 
     routingUtils.logToFile("Per-core waste (non-zero only):");
-    for (const auto &kv : wastedMessages) {
-        if (kv.second > 0) routingUtils.logToFile("  Core " + std::to_string(kv.first) + ": " + std::to_string(kv.second));
+    for (const auto& kv : wastedMessages) {
+        if (kv.second > 0)
+            routingUtils.logToFile("  Core " + std::to_string(kv.first) + ": " + std::to_string(kv.second));
     }
     routingUtils.logToFile("==================================");
 
     j["total_illegal_deliveries"] = totalWasteAll;
     nlohmann::json per_neuron, per_core;
     for (const auto& kv : wastePerNeuron) {
-        if (kv.second > 0)
-            per_neuron[std::to_string(kv.first)] = kv.second;
+        if (kv.second > 0) per_neuron[std::to_string(kv.first)] = kv.second;
     }
     for (const auto& kv : wastedMessages) {
-        if (kv.second > 0)
-            per_core[std::to_string(kv.first)] = kv.second;
+        if (kv.second > 0) per_core[std::to_string(kv.first)] = kv.second;
     }
     j["per_neuron_waste"] = per_neuron;
     j["per_core_waste"] = per_core;

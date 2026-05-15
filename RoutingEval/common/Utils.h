@@ -10,16 +10,15 @@
 #
 ####################################################################################*/
 
-
 #ifndef UTILS_H
 #define UTILS_H
 
-#include <string>
-#include <vector>
-#include <unordered_map>
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <sstream>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 using namespace std;
 
@@ -30,28 +29,29 @@ private:
     string connectivityMatrixFilePath;
     vector<vector<int>> connectivityMatrix;
     unordered_map<int, int> neuronCoreMap;
+
 public:
-    Utils(); // updated definition
-	// Prints a matrix to stdout (for debug)
-	void printConnectivityMatrix();
+    Utils();  // updated definition
+    // Prints a matrix to stdout (for debug)
+    void printConnectivityMatrix();
 
     // Prints a matrix to stdout (for debug)
-	void printNeuronMap();
+    void printNeuronMap();
 
     //to set the new sample [added for 50 samples]
     void setConnectivityMatrix(string matrixFilePath);
 
-	// Reads a plain text matrix from a file
-	vector<vector<int>> loadConnectivityMatrix(const string& filePath);
+    // Reads a plain text matrix from a file
+    vector<vector<int>> loadConnectivityMatrix(const string& filePath);
 
-	// Initializes a zero matrix of given dimensions
-	static vector<vector<int>> initializeZeroMatrix(int rows, int cols);
+    // Initializes a zero matrix of given dimensions
+    static vector<vector<int>> initializeZeroMatrix(int rows, int cols);
 
-	// Logs message with timestamp
-	void logToFile(const string& message);
+    // Logs message with timestamp
+    void logToFile(const string& message);
 
-	// Creates a log file name based on current date and time
-	static string createLogFileName();
+    // Creates a log file name based on current date and time
+    static string createLogFileName();
 
     // Gets the log file name
     string getLogFileName() {
@@ -73,8 +73,8 @@ public:
         neuronCoreMap = map;
     }
 
-    ~Utils(){}
-
+    ~Utils() {
+    }
 };
 
-#endif // UTILS_H
+#endif  // UTILS_H

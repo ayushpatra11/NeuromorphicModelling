@@ -10,15 +10,18 @@
 ************************************************************************************/
 
 #include "NeuronMapper.h"
+
 #include <algorithm>
-#include <random>
 #include <fstream>
 #include <queue>
+#include <random>
 #include <unordered_set>
 
 using json = nlohmann::json;
 
-void NeuronMapper::logCoreTreeRecursive(int node, const std::unordered_map<int, std::vector<int>>& core_tree, std::ostream& out, std::string prefix = "", bool isLeft = true, int max_leaf_id = -1) {
+void NeuronMapper::logCoreTreeRecursive(int node, const std::unordered_map<int, std::vector<int>>& core_tree,
+                                        std::ostream& out, std::string prefix = "", bool isLeft = true,
+                                        int max_leaf_id = -1) {
     out << prefix;
     out << (isLeft ? "├── " : "└── ");
 
@@ -54,10 +57,16 @@ void NeuronMapper::assignNeuronsToCores() {
         infile.close();
         for (auto& [key, val] : j.items()) {
             // Skip any non-numeric keys defensively (e.g., comments or extra fields)
-            bool numeric = !key.empty() && std::all_of(key.begin(), key.end(), [](char c){ return c=='-' || std::isdigit(static_cast<unsigned char>(c)); });
+            bool numeric = !key.empty() && std::all_of(key.begin(), key.end(), [](char c) {
+                return c == '-' || std::isdigit(static_cast<unsigned char>(c));
+            });
             if (!numeric) continue;
             int core = 0;
-            try { core = std::stoi(key); } catch (...) { continue; }
+            try {
+                core = std::stoi(key);
+            } catch (...) {
+                continue;
+            }
             if (!val.is_array()) continue;
             for (int neuron : val) {
                 neuron_to_core[neuron] = core;
@@ -69,7 +78,7 @@ void NeuronMapper::assignNeuronsToCores() {
             core_count = (int)distinct.size();
         }
         // Compare existing mapping's core count with required cores from parameters
-        int required_cores = (num_neurons + neurons_per_core - 1) / neurons_per_core; // ceil division
+        int required_cores = (num_neurons + neurons_per_core - 1) / neurons_per_core;  // ceil division
         if (core_count == required_cores) {
             // Reuse existing mapping as-is
             return;
@@ -78,7 +87,7 @@ void NeuronMapper::assignNeuronsToCores() {
         neuron_to_core.clear();
     }
 
-    int num_cores = (num_neurons + neurons_per_core - 1) / neurons_per_core; // ceil division
+    int num_cores = (num_neurons + neurons_per_core - 1) / neurons_per_core;  // ceil division
     std::vector<std::vector<int>> clusters(num_cores);
     std::vector<bool> visited(num_neurons, false);
     std::vector<int> neuron_ids(num_neurons);
@@ -92,7 +101,8 @@ void NeuronMapper::assignNeuronsToCores() {
         q.push(i);
         visited[i] = true;
         while (!q.empty() && static_cast<int>(clusters[cluster_index].size()) < neurons_per_core) {
-            int n = q.front(); q.pop();
+            int n = q.front();
+            q.pop();
             clusters[cluster_index].push_back(n);
             for (int j = 0; j < num_neurons; ++j) {
                 if (!visited[j] && n != j && connectivity_matrix[n][j] > 0) {
@@ -184,7 +194,7 @@ int NeuronMapper::getCoreForNeuron(int neuron_id) const {
     if (it != neuron_to_core.end()) {
         return it->second;
     }
-    return -1; // invalid neuron id
+    return -1;  // invalid neuron id
 }
 
 const std::unordered_map<int, int>& NeuronMapper::getNeuronToCoreMap() const {
@@ -204,7 +214,8 @@ const std::unordered_map<int, int>& NeuronMapper::getCoreParent() const {
 }
 
 // Recursively serialize the core tree as a nested JSON structure
-void NeuronMapper::serializeCoreTree(int node, const std::unordered_map<int, std::vector<int>>& core_tree, json& j) const {
+void NeuronMapper::serializeCoreTree(int node, const std::unordered_map<int, std::vector<int>>& core_tree,
+                                     json& j) const {
     j["core"] = node;
     if (core_tree.find(node) != core_tree.end()) {
         j["children"] = json::array();

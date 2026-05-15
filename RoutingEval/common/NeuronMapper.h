@@ -3,9 +3,9 @@
 //#   File Name: NeuronMapper.h
 //#   Author:  Ayush Patra
 //#   Description: Maps neurons to cores based on the Neurogrid routing strategy.
-//#                Randomly assigns neurons to cores. Models core-to-core connectivity 
+//#                Randomly assigns neurons to cores. Models core-to-core connectivity
 //#                using a binary tree for simulating multicast routing.
-//#   Version History:        
+//#   Version History:
 //#       - 2025-07-26: Initial version
 //#       - 2025-07-26: Updated to binary tree topology for cores
 //#
@@ -14,12 +14,13 @@
 #ifndef NEURON_MAPPER_H
 #define NEURON_MAPPER_H
 
-#include <unordered_map>
-#include <vector>
-#include <utility>
+#include <fstream>
 #include <random>
 #include <stdexcept>
-#include <fstream>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+
 #include "nlohmann/json.hpp"  // If you're using JSON (https://github.com/nlohmann/json)
 
 using json = nlohmann::json;
@@ -30,10 +31,10 @@ private:
     int neurons_per_core;
     int core_count;
     std::unordered_map<int, int> neuron_to_core;
-    std::unordered_map<int, std::pair<int, int>> core_children; // left and right child for each core
-    std::unordered_map<int, int> core_parent; // parent for each core
+    std::unordered_map<int, std::pair<int, int>> core_children;  // left and right child for each core
+    std::unordered_map<int, int> core_parent;                    // parent for each core
     std::unordered_map<int, std::vector<int>> core_tree;
-    const std::vector<std::vector<int>>& connectivity_matrix; 
+    const std::vector<std::vector<int>>& connectivity_matrix;
 
     void buildBinaryTree();
 
@@ -48,10 +49,12 @@ public:
     int getParentCore(int core_id) const;
     int getTotalCores() const;
     void exportCoreTreeToJson(const std::string& filename) const;
-    void exportCoreNeuronMapToJson(const std::string& filename) const; 
-    void logCoreTreeRecursive(int node, const std::unordered_map<int, std::vector<int>>& core_tree, std::ostream& out, std::string prefix, bool isLeft, int max_leaf_id);
+    void exportCoreNeuronMapToJson(const std::string& filename) const;
+    void logCoreTreeRecursive(int node, const std::unordered_map<int, std::vector<int>>& core_tree, std::ostream& out,
+                              std::string prefix, bool isLeft, int max_leaf_id);
     void serializeCoreTree(int node, const std::unordered_map<int, std::vector<int>>& core_tree, json& j) const;
-    ~NeuronMapper(){}
+    ~NeuronMapper() {
+    }
 };
 
-#endif // NEURON_MAPPER_H
+#endif  // NEURON_MAPPER_H

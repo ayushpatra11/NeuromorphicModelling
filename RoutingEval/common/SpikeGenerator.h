@@ -22,10 +22,11 @@ public:
     bool isSpiking(int neuronId) const;
     const std::unordered_set<int>& getSpikingNeurons() const;
 
-    ~SpikeGenerator() {}
+    ~SpikeGenerator() {
+    }
 
 private:
     std::unordered_set<int> spikingNeurons;
 };
 
-#endif // SPIKE_GENERATOR_H
+#endif  // SPIKE_GENERATOR_H
