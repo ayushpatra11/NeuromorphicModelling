@@ -39,7 +39,19 @@ private:
 
     void traverseTree(int coreId, std::unordered_set<int>& visitedCores);
     void simulateNeuronToNeuron(int sourceNeuron);
-    //void routeMessage(int srcCore, int tgtCore, std::unordered_set<int>& visitedCores);
+
+    // Helper: finds the root node of the core tree (the one with no parent)
+    int findRootCore() const;
+    // Helper: builds the map of target cores → target neurons for a source neuron
+    std::map<int, std::vector<int>> buildTargetCores(int src) const;
+    // Helper: resolves the LCA across all target cores; returns -1 if routing should be skipped
+    int computeLCA(int srcCore, const std::unordered_set<int>& actualTargetCores, int rootCore);
+    // Helper: traces the U/D/L/R/B routing path from srcCore up to the LCA
+    std::string traceRoutingPath(int srcCore, int lcaCore, int rootCore);
+    // Helper: counts waste as non-target leaf cores under the LCA subtree
+    int computeWasteUnderLCA(int src, int lcaCore, const std::unordered_set<int>& actualTargetCores);
+    // Helper: logs the final waste summary and writes the JSON report to disk
+    void writeReport();
 
 public:
     RoutingSimulator(const std::vector<std::vector<int>>& connectivityMatrix,
