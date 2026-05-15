@@ -40,7 +40,29 @@ private:
 
     void traverseTree(int coreId, std::unordered_set<int>& visitedCores);
     void simulateNeuronToNeuron(int sourceNeuron);
-    //void routeMessage(int srcCore, int tgtCore, std::unordered_set<int>& visitedCores);
+
+    // Helper: reconstruct (dstNeuron, coreId) pairs from the connectivity row
+    std::vector<std::pair<int, int>> buildTargetNeuronCoreList(int sourceNeuron) const;
+    // Helper: log the routing summary header and per-core target lists
+    void logRoutingSummary(int sourceNeuron, int sourceCore,
+                           const std::unordered_map<int, std::vector<int>>& coreToDstNeurons,
+                           const std::vector<std::pair<int, int>>& targetNeuronCoreList,
+                           const std::unordered_set<int>& targetCores);
+    // Helper: group each target core by its parent switch and child index
+    void buildParentSwitchMap(
+        const std::unordered_set<int>& targetCores, int sourceCore,
+        std::unordered_map<int, std::unordered_map<int, std::unordered_set<int>>>& parentToChildIdxTargets,
+        std::unordered_set<int>& parentSwitches);
+    // Helper: compute global OR mask of child indices across all parent switches, and log it
+    void computeGlobalMask(
+        const std::unordered_set<int>& parentSwitches,
+        const std::unordered_map<int, std::unordered_map<int, std::unordered_set<int>>>& parentToChildIdxTargets,
+        std::unordered_map<int, std::unordered_set<int>>& localMasks, std::unordered_set<int>& globalMaskIndices);
+    // Helper: compute and accumulate waste for each parent under the global mask
+    void computeWastePerParent(
+        int sourceNeuron, const std::unordered_set<int>& parentSwitches,
+        const std::unordered_set<int>& globalMaskIndices,
+        const std::unordered_map<int, std::unordered_map<int, std::unordered_set<int>>>& parentToChildIdxTargets);
 
 public:
     HBSRoutingSimulator(const std::vector<std::vector<int>>& connectivityMatrix,

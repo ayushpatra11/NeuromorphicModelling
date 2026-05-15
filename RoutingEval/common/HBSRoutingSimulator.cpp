@@ -2,9 +2,9 @@
 #
 #   File Name: HBSRoutingSimulator.cpp
 #   Author:  Ayush Patra
-#   Description: Simulates Neurogrid-style routing from one neuron to another using
-#                a binary tree of switches with 4 cores in the leaves. Computes and 
-#                logs routing waste based on deviation from expected connectivity 
+#   Description: Simulates HBS (Hierarchical Bit String) routing from one neuron to
+#                another using a tree of switches with 4-wide leaf groups. Computes
+#                and logs routing waste based on deviation from expected connectivity
 #                (connectivity matrix).
 #   Version History:
 #       - 2025-08-06: Initial version
@@ -14,13 +14,12 @@
 #include "HBSRoutingSimulator.h"
 
 #include <cassert>
+#include <fstream>
 #include <iostream>
+#include <nlohmann/json.hpp>
 #include <queue>
 #include <sstream>
 #include <stack>
-// For JSON output
-#include <fstream>
-#include <nlohmann/json.hpp>
 
 static constexpr int MAX_GROUP_SIZE = 4;
 
@@ -136,7 +135,51 @@ void HBSRoutingSimulator::simulateNeuronToNeuron(int sourceNeuron) {
     const unordered_set<int>& targetCores = itTargets->second;
 
     // Reconstruct target neurons (dst) and their cores for detailed logging
-    std::vector<std::pair<int, int>> targetNeuronCoreList;  // (dstNeuron, coreId)
+    auto targetNeuronCoreList = buildTargetNeuronCoreList(sourceNeuron);
+
+    // Build core -> list of target neurons for pretty logging
+    std::unordered_map<int, std::vector<int>> coreToDstNeurons;
+    for (const auto& pr : targetNeuronCoreList) coreToDstNeurons[pr.second].push_back(pr.first);
+
+    // Source core
+    int sourceCore = -1;
+    auto itSrc = neuronToCoreMap.find(sourceNeuron);
+    if (itSrc != neuronToCoreMap.end()) sourceCore = itSrc->second;
+
+    // --- Summary header logs ---
+    logRoutingSummary(sourceNeuron, sourceCore, coreToDstNeurons, targetNeuronCoreList, targetCores);
+
+    if (targetNeuronCoreList.empty()) {
+        routingUtils.logToFile("No target cores for source neuron " + std::to_string(sourceNeuron) +
+                               ". Skipping routing.");
+        return;
+    }
+
+    // Group targets by their *immediate parent switch* and by child-index under that switch.
+    // parentSwitch -> childIndex -> set<coreId>
+    unordered_map<int, unordered_map<int, unordered_set<int>>> parentToChildIdxTargets;
+    unordered_set<int> parentSwitches;
+    buildParentSwitchMap(targetCores, sourceCore, parentToChildIdxTargets, parentSwitches);
+
+    // Compute the *global OR* of child indices across all participating parents.
+    std::unordered_map<int, std::unordered_set<int>> localMasks;
+    unordered_set<int> globalMaskIndices;
+    computeGlobalMask(parentSwitches, parentToChildIdxTargets, localMasks, globalMaskIndices);
+
+    // Route-like hints (no LCA used here, but list explicit target cores)
+    for (const auto& kvp : coreToDstNeurons)
+        routingUtils.logToFile(std::string("Target core: ") + std::to_string(kvp.first));
+
+    // Now, each parent switch broadcasts to every child index in `globalMaskIndices`.
+    // Waste = (#leaf cores under that child) - (#targets under that child at this parent).
+    computeWastePerParent(sourceNeuron, parentSwitches, globalMaskIndices, parentToChildIdxTargets);
+
+    routingUtils.logToFile("Total core-level routing waste: " + std::to_string(wastePerNeuron[sourceNeuron]));
+    routingUtils.logToFile("Finished simulation for source neuron " + std::to_string(sourceNeuron));
+}
+
+std::vector<std::pair<int, int>> HBSRoutingSimulator::buildTargetNeuronCoreList(int sourceNeuron) const {
+    std::vector<std::pair<int, int>> targetNeuronCoreList;
     const auto& row = connectivityMatrix[sourceNeuron];
     for (int dstNeuron = 0; dstNeuron < (int)row.size(); ++dstNeuron) {
         if (row[dstNeuron] >= weightThreshold) {
@@ -146,21 +189,13 @@ void HBSRoutingSimulator::simulateNeuronToNeuron(int sourceNeuron) {
             }
         }
     }
+    return targetNeuronCoreList;
+}
 
-    // Build core -> list of target neurons for pretty logging
-    std::unordered_map<int, std::vector<int>> coreToDstNeurons;
-    for (const auto& pr : targetNeuronCoreList) {
-        coreToDstNeurons[pr.second].push_back(pr.first);
-    }
-
-    // Source core
-    int sourceCore = -1;
-    {
-        auto itSrc = neuronToCoreMap.find(sourceNeuron);
-        if (itSrc != neuronToCoreMap.end()) sourceCore = itSrc->second;
-    }
-
-    // --- Summary header logs ---
+void HBSRoutingSimulator::logRoutingSummary(int sourceNeuron, int sourceCore,
+                                            const std::unordered_map<int, std::vector<int>>& coreToDstNeurons,
+                                            const std::vector<std::pair<int, int>>& targetNeuronCoreList,
+                                            const std::unordered_set<int>& targetCores) {
     routingUtils.logToFile("--- Routing Summary for Neuron " + std::to_string(sourceNeuron) + " ---");
     routingUtils.logToFile("Number of target cores: " + std::to_string(coreToDstNeurons.size()));
     routingUtils.logToFile("Source neuron " + std::to_string(sourceNeuron) + " belongs to core " +
@@ -169,17 +204,15 @@ void HBSRoutingSimulator::simulateNeuronToNeuron(int sourceNeuron) {
                            std::to_string(sourceCore) + " targets are: ");
 
     // Per-core target lists
-    for (auto& kvp : coreToDstNeurons) {
+    for (const auto& kvp : coreToDstNeurons) {
         int tCore = kvp.first;
-        auto& dsts = kvp.second;
+        const auto& dsts = kvp.second;
         std::ostringstream oss1;
         oss1 << "Core: " << tCore;
         routingUtils.logToFile(oss1.str());
         std::ostringstream oss2;
         oss2 << " Neurons: ";
-        for (size_t i = 0; i < dsts.size(); ++i) {
-            oss2 << dsts[i] << ", ";
-        }
+        for (size_t i = 0; i < dsts.size(); ++i) oss2 << dsts[i] << ", ";
         routingUtils.logToFile(oss2.str());
         routingUtils.logToFile("Target core " + std::to_string(tCore) + " has " + std::to_string(dsts.size()) +
                                " target neurons.");
@@ -187,37 +220,27 @@ void HBSRoutingSimulator::simulateNeuronToNeuron(int sourceNeuron) {
 
     routingUtils.logToFile("Using all actual target cores based on connectivity.");
 
-    if (targetNeuronCoreList.empty()) {
-        routingUtils.logToFile("No target cores for source neuron " + std::to_string(sourceNeuron) +
-                               ". Skipping routing.");
-        return;
-    }
-
     // Log: source neuron, list of target neurons and their cores, and the set of target cores
-    {
-        std::ostringstream oss;
-        oss << "[HBS] Source neuron: " << sourceNeuron << "\n";
-        oss << "[HBS] Target neurons (dst -> core): ";
-        for (size_t i = 0; i < targetNeuronCoreList.size(); ++i) {
-            if (i) oss << ", ";
-            oss << targetNeuronCoreList[i].first << "->" << targetNeuronCoreList[i].second;
-        }
-        oss << "\n[HBS] Unique target cores: ";
-        size_t i = 0;
-        for (int c : targetCores) {
-            if (i++) oss << ", ";
-            oss << c;
-        }
-        routingUtils.logToFile(oss.str());
+    std::ostringstream oss;
+    oss << "[HBS] Source neuron: " << sourceNeuron << "\n";
+    oss << "[HBS] Target neurons (dst -> core): ";
+    for (size_t i = 0; i < targetNeuronCoreList.size(); ++i) {
+        if (i) oss << ", ";
+        oss << targetNeuronCoreList[i].first << "->" << targetNeuronCoreList[i].second;
     }
+    oss << "\n[HBS] Unique target cores: ";
+    size_t i = 0;
+    for (int c : targetCores) {
+        if (i++) oss << ", ";
+        oss << c;
+    }
+    routingUtils.logToFile(oss.str());
+}
 
-    // Group targets by their *immediate parent switch* and by child-index under that switch.
-    // parentSwitch -> childIndex -> set<coreId>
-    unordered_map<int, unordered_map<int, unordered_set<int>>> parentToChildIdxTargets;
-
-    // Also collect the set of parent switches that will receive a packet.
-    unordered_set<int> parentSwitches;
-
+void HBSRoutingSimulator::buildParentSwitchMap(
+    const std::unordered_set<int>& targetCores, int sourceCore,
+    std::unordered_map<int, std::unordered_map<int, std::unordered_set<int>>>& parentToChildIdxTargets,
+    std::unordered_set<int>& parentSwitches) {
     for (int coreId : targetCores) {
         // Do not send a message to the source's own core, but still log it.
         if (coreId == sourceCore) {
@@ -256,53 +279,51 @@ void HBSRoutingSimulator::simulateNeuronToNeuron(int sourceNeuron) {
         }
         parentToChildIdxTargets[parent][idx].insert(coreId);
     }
+}
 
+void HBSRoutingSimulator::computeGlobalMask(
+    const std::unordered_set<int>& parentSwitches,
+    const std::unordered_map<int, std::unordered_map<int, std::unordered_set<int>>>& parentToChildIdxTargets,
+    std::unordered_map<int, std::unordered_set<int>>& localMasks, std::unordered_set<int>& globalMaskIndices) {
     // Compute the *global OR* of child indices across all participating parents.
-    std::unordered_map<int, std::unordered_set<int>> localMasks;  // parent -> set of child indices with targets
-    unordered_set<int> globalMaskIndices;                         // e.g., {0,1,2}
     for (int parent : parentSwitches) {
         auto it = coreTree.find(parent);
         if (it == coreTree.end()) continue;  // defensive
         const auto& children = it->second;
         std::unordered_set<int> localMask;
+        auto parentIt = parentToChildIdxTargets.find(parent);
         for (int ci = 0; ci < (int)children.size() && ci < MAX_GROUP_SIZE; ++ci) {
-            auto ptIt = parentToChildIdxTargets[parent].find(ci);
-            if (ptIt != parentToChildIdxTargets[parent].end() && !ptIt->second.empty()) {
-                localMask.insert(ci);
-                globalMaskIndices.insert(ci);
+            if (parentIt != parentToChildIdxTargets.end()) {
+                auto ptIt = parentIt->second.find(ci);
+                if (ptIt != parentIt->second.end() && !ptIt->second.empty()) {
+                    localMask.insert(ci);
+                    globalMaskIndices.insert(ci);
+                }
             }
         }
         localMasks[parent] = localMask;
     }
 
-    {
-        std::ostringstream oss;
-        oss << "Per-parent masks (bits [0..3], left=child0):\n";
-        for (int parent : parentSwitches) {
-            const auto& lm = localMasks[parent];
-            oss << "  parent " << parent << ": " << maskToBits(lm) << "  (indices:";
-            int cnt = 0;
-            for (int idx : lm) {
-                oss << (cnt++ ? "," : " ") << idx;
-            }
-            oss << ")\n";
-        }
-        oss << "Global OR mask: " << maskToBits(globalMaskIndices) << "  (indices:";
+    // Log per-parent masks and the global OR mask
+    std::ostringstream oss;
+    oss << "Per-parent masks (bits [0..3], left=child0):\n";
+    for (int parent : parentSwitches) {
+        const auto& lm = localMasks[parent];
+        oss << "  parent " << parent << ": " << maskToBits(lm) << "  (indices:";
         int cnt = 0;
-        for (int idx : globalMaskIndices) {
-            oss << (cnt++ ? "," : " ") << idx;
-        }
-        oss << ")";
-        routingUtils.logToFile(oss.str());
+        for (int idx : lm) oss << (cnt++ ? "," : " ") << idx;
+        oss << ")\n";
     }
+    oss << "Global OR mask: " << maskToBits(globalMaskIndices) << "  (indices:";
+    int cnt = 0;
+    for (int idx : globalMaskIndices) oss << (cnt++ ? "," : " ") << idx;
+    oss << ")";
+    routingUtils.logToFile(oss.str());
+}
 
-    // Route-like hints (no LCA used here, but list explicit target cores)
-    for (const auto& kvp : coreToDstNeurons) {
-        routingUtils.logToFile(std::string("Target core: ") + std::to_string(kvp.first));
-    }
-
-    // Now, each parent switch broadcasts to every child index in `globalMaskIndices`.
-    // For each selected child index at a given parent, waste = (#leaf cores under that child) - (#targets under that child at this parent).
+void HBSRoutingSimulator::computeWastePerParent(
+    int sourceNeuron, const std::unordered_set<int>& parentSwitches, const std::unordered_set<int>& globalMaskIndices,
+    const std::unordered_map<int, std::unordered_map<int, std::unordered_set<int>>>& parentToChildIdxTargets) {
     int& srcWaste = wastePerNeuron[sourceNeuron];
 
     for (int parent : parentSwitches) {
@@ -320,50 +341,50 @@ void HBSRoutingSimulator::simulateNeuronToNeuron(int sourceNeuron) {
 
             // Number of *actual* target cores under this child for *this parent*
             int targetCountUnderChild = 0;
-            auto ptIt = parentToChildIdxTargets[parent].find(ci);
-            if (ptIt != parentToChildIdxTargets[parent].end()) {
-                targetCountUnderChild = (int)ptIt->second.size();
+            auto parentIt = parentToChildIdxTargets.find(parent);
+            if (parentIt != parentToChildIdxTargets.end()) {
+                auto ptIt = parentIt->second.find(ci);
+                if (ptIt != parentIt->second.end()) targetCountUnderChild = (int)ptIt->second.size();
             }
 
             int wasteHere = leafCount - targetCountUnderChild;
             if (wasteHere > 0) {
-                {
-                    std::ostringstream oss;
-                    oss << "Core-level waste: under parent " << parent << ", child-index " << ci << ": ";
-                    int printed = 0;
-                    auto ptIt2 = parentToChildIdxTargets[parent].find(ci);
-                    const std::unordered_set<int>* tgtSetPtr =
-                        (ptIt2 != parentToChildIdxTargets[parent].end()) ? &ptIt2->second : nullptr;
-                    for (int c : leaves) {
-                        if (!tgtSetPtr || tgtSetPtr->find(c) == tgtSetPtr->end()) {
-                            if (printed++) oss << ", ";
-                            oss << "core " << c << " was not a target";
-                        }
-                    }
-                    routingUtils.logToFile(oss.str());
+                std::ostringstream oss;
+                oss << "Core-level waste: under parent " << parent << ", child-index " << ci << ": ";
+                int printed = 0;
+                const std::unordered_set<int>* tgtSetPtr = nullptr;
+                if (parentIt != parentToChildIdxTargets.end()) {
+                    auto ptIt2 = parentIt->second.find(ci);
+                    if (ptIt2 != parentIt->second.end()) tgtSetPtr = &ptIt2->second;
                 }
+                for (int c : leaves) {
+                    if (!tgtSetPtr || tgtSetPtr->find(c) == tgtSetPtr->end()) {
+                        if (printed++) oss << ", ";
+                        oss << "core " << c << " was not a target";
+                    }
+                }
+                routingUtils.logToFile(oss.str());
                 srcWaste += wasteHere;
+
                 // Attribute waste to the receiving non-target leaf cores
                 if (targetCountUnderChild == 0) {
                     // All leaves are waste
-                    for (int c : leaves) {
-                        wastedMessages[c] += 1;  // one extra illegal delivery
-                    }
+                    for (int c : leaves) wastedMessages[c] += 1;  // one extra illegal delivery
                 } else {
                     // Mark only non-target leaves as waste
-                    const auto& tgtSet = ptIt->second;  // set of target cores under this child
-                    for (int c : leaves) {
-                        if (tgtSet.find(c) == tgtSet.end()) {
-                            wastedMessages[c] += 1;
+                    if (parentIt != parentToChildIdxTargets.end()) {
+                        auto ptIt3 = parentIt->second.find(ci);
+                        if (ptIt3 != parentIt->second.end()) {
+                            const auto& tgtSet = ptIt3->second;  // set of target cores under this child
+                            for (int c : leaves) {
+                                if (tgtSet.find(c) == tgtSet.end()) wastedMessages[c] += 1;
+                            }
                         }
                     }
                 }
             }
         }
     }
-
-    routingUtils.logToFile("Total core-level routing waste: " + std::to_string(wastePerNeuron[sourceNeuron]));
-    routingUtils.logToFile("Finished simulation for source neuron " + std::to_string(sourceNeuron));
 }
 
 void HBSRoutingSimulator::traverseTree(int coreId, unordered_set<int>& visitedCores) {
