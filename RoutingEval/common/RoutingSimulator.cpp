@@ -20,12 +20,7 @@
 #include <set>
 #include <algorithm>
 #include <fstream>
-// Write JSON summary to file using nlohmann::json
 #include <nlohmann/json.hpp>
-nlohmann::json j;
-
-// Definition for the root core used in LCA checks
-const int rootCore = 30;
 
 RoutingSimulator::RoutingSimulator(const std::vector<std::vector<int>>& connectivityMatrix,
                                    const std::unordered_map<int, int>& neuronToCoreMap,
@@ -45,8 +40,13 @@ RoutingSimulator::RoutingSimulator(const std::vector<std::vector<int>>& connecti
       }
 
 void RoutingSimulator::simulate() {
+    nlohmann::json j;
 
-    //let us first start with checking the mappings.
+    int rootCore = -1;
+    for (const auto& kv : coreParent) {
+        if (kv.second == -1) { rootCore = kv.first; break; }
+    }
+
     wastePerNeuron.clear();
     wastedMessages.clear();
     
