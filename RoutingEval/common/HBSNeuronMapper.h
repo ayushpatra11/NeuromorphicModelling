@@ -2,10 +2,10 @@
 //#
 //#   File Name: HBSNeuronMapper.h
 //#   Author:  Ayush Patra
-//#   Description: Maps neurons to cores based on the HBS (Hierarchical Broadcast
-//#                Scheme) routing strategy. Loads an existing neuron-to-core mapping
-//#                and builds a non-binary HBS tree (4-wide leaf switches, binary
-//#                upper levels) for simulating multicast routing.
+//#   Description: Maps neurons to cores based on the HBS (Hierarchical Bit String)
+//#                routing strategy. Loads an existing neuron-to-core mapping and
+//#                builds a non-binary HBS tree (4-wide leaf switches, binary upper
+//#                levels) for simulating multicast routing.
 //#   Version History:
 //#       - 2025-08-06: Initial version
 //#

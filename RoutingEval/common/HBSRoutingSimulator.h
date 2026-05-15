@@ -2,9 +2,9 @@
 #
 #   File Name: HBSRoutingSimulator.h
 #   Author:  Ayush Patra
-#   Description: Simulates Neurogrid-style routing from one neuron to another using
-#                a binary tree of switches with 4 cores in the leaves. Computes and 
-#                logs routing waste based on deviation from expected connectivity 
+#   Description: Simulates HBS (Hierarchical Bit String) routing from one neuron to
+#                another using a tree of switches with 4-wide leaf groups. Computes
+#                and logs routing waste based on deviation from expected connectivity
 #                (connectivity matrix).
 #   Version History:
 #       - 2025-08-06: Initial version
