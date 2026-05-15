@@ -64,7 +64,7 @@ e2e-test:
 		mkdir -p RoutingEval/data/reports/mapping1/reports_512_$$npc/neurogrid; \
 		mkdir -p RoutingEval/data/reports/mapping1/reports_512_$$npc/hbs; \
 	done
-	mkdir -p RoutingEval/data/core_tree RoutingEval/data/connectivity_matrix
+	mkdir -p RoutingEval/data/core_tree RoutingEval/data/connectivity_matrix RoutingEval/logs
 	cd RoutingEval/build && ./RunSimulator
 	mkdir -p $(FIGURES_DIR)
 	$(PYTHON) scripts/evaluate_results.py \
@@ -130,7 +130,7 @@ simulate: build-cpp
 			mkdir -p RoutingEval/data/reports/mapping$$m/reports_512_$$npc/hbs; \
 		done; \
 	done
-	mkdir -p RoutingEval/data/core_tree RoutingEval/data/connectivity_matrix
+	mkdir -p RoutingEval/data/core_tree RoutingEval/data/connectivity_matrix RoutingEval/logs
 	@echo "Running C++ routing simulation…"
 	cd RoutingEval/build && ./RunSimulator
 
