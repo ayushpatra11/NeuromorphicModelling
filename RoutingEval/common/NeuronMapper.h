@@ -36,7 +36,17 @@ private:
     std::unordered_map<int, std::vector<int>> core_tree;
     const std::vector<std::vector<int>>& connectivity_matrix;
 
+    // Helper: load existing JSON mapping; returns true if core count matches required
+    bool loadExistingMapping();
+    // Helper: BFS-based clustering of neurons into cores by connectivity
+    void clusterNeuronsBFS();
+    // Helper: build binary tree over leaf cores, populating core_tree and core_parent
     void buildBinaryTree();
+    // Helper: recursively log the core tree structure to an output stream
+    void logCoreTreeRecursive(int node, const std::unordered_map<int, std::vector<int>>& core_tree, std::ostream& out,
+                              std::string prefix, bool isLeft, int max_leaf_id);
+    // Helper: recursively serialize core tree to a nested JSON object
+    void serializeCoreTree(int node, const std::unordered_map<int, std::vector<int>>& core_tree, json& j) const;
 
 public:
     NeuronMapper(int total_neurons, int neurons_per_core, const std::vector<std::vector<int>>& conn_matrix);
@@ -46,13 +56,9 @@ public:
     const std::unordered_map<int, int>& getNeuronToCoreMap() const;
     const std::unordered_map<int, std::vector<int>>& getCoreTree() const;
     const std::unordered_map<int, int>& getCoreParent() const;
-    int getParentCore(int core_id) const;
     int getTotalCores() const;
     void exportCoreTreeToJson(const std::string& filename) const;
     void exportCoreNeuronMapToJson(const std::string& filename) const;
-    void logCoreTreeRecursive(int node, const std::unordered_map<int, std::vector<int>>& core_tree, std::ostream& out,
-                              std::string prefix, bool isLeft, int max_leaf_id);
-    void serializeCoreTree(int node, const std::unordered_map<int, std::vector<int>>& core_tree, json& j) const;
     ~NeuronMapper() {
     }
 };

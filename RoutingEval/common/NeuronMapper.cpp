@@ -50,43 +50,47 @@ NeuronMapper::NeuronMapper(int total_neurons, int neurons_per_core, const std::v
 }
 
 void NeuronMapper::assignNeuronsToCores() {
-    std::ifstream infile("../data/neuron_to_core_map.json");
-    if (infile.good()) {
-        json j;
-        infile >> j;
-        infile.close();
-        for (auto& [key, val] : j.items()) {
-            // Skip any non-numeric keys defensively (e.g., comments or extra fields)
-            bool numeric = !key.empty() && std::all_of(key.begin(), key.end(), [](char c) {
-                return c == '-' || std::isdigit(static_cast<unsigned char>(c));
-            });
-            if (!numeric) continue;
-            int core = 0;
-            try {
-                core = std::stoi(key);
-            } catch (...) {
-                continue;
-            }
-            if (!val.is_array()) continue;
-            for (int neuron : val) {
-                neuron_to_core[neuron] = core;
-            }
-        }
-        {
-            std::unordered_set<int> distinct;
-            for (const auto& [_, core] : neuron_to_core) distinct.insert(core);
-            core_count = (int)distinct.size();
-        }
-        // Compare existing mapping's core count with required cores from parameters
-        int required_cores = (num_neurons + neurons_per_core - 1) / neurons_per_core;  // ceil division
-        if (core_count == required_cores) {
-            // Reuse existing mapping as-is
-            return;
-        }
-        // Otherwise, rebuild a fresh neuron_to_core mapping below
-        neuron_to_core.clear();
-    }
+    if (loadExistingMapping()) return;
+    clusterNeuronsBFS();
+    exportCoreNeuronMapToJson("../data/neuron_to_core_map.json");
+}
 
+bool NeuronMapper::loadExistingMapping() {
+    std::ifstream infile("../data/neuron_to_core_map.json");
+    if (!infile.good()) return false;
+
+    json j;
+    infile >> j;
+    infile.close();
+    for (auto& [key, val] : j.items()) {
+        // Skip any non-numeric keys defensively (e.g., comments or extra fields)
+        bool numeric = !key.empty() && std::all_of(key.begin(), key.end(), [](char c) {
+            return c == '-' || std::isdigit(static_cast<unsigned char>(c));
+        });
+        if (!numeric) continue;
+        int core = 0;
+        try {
+            core = std::stoi(key);
+        } catch (...) {
+            continue;
+        }
+        if (!val.is_array()) continue;
+        for (int neuron : val) neuron_to_core[neuron] = core;
+    }
+    {
+        std::unordered_set<int> distinct;
+        for (const auto& [_, core] : neuron_to_core) distinct.insert(core);
+        core_count = (int)distinct.size();
+    }
+    // Compare existing mapping's core count with required cores from parameters
+    int required_cores = (num_neurons + neurons_per_core - 1) / neurons_per_core;  // ceil division
+    if (core_count == required_cores) return true;
+    // Core count mismatch — discard and rebuild
+    neuron_to_core.clear();
+    return false;
+}
+
+void NeuronMapper::clusterNeuronsBFS() {
     int num_cores = (num_neurons + neurons_per_core - 1) / neurons_per_core;  // ceil division
     std::vector<std::vector<int>> clusters(num_cores);
     std::vector<bool> visited(num_neurons, false);
@@ -122,13 +126,9 @@ void NeuronMapper::assignNeuronsToCores() {
     }
 
     for (int c = 0; c < num_cores; ++c) {
-        for (int neuron : clusters[c]) {
-            neuron_to_core[neuron] = c;
-        }
+        for (int neuron : clusters[c]) neuron_to_core[neuron] = c;
     }
-
     core_count = num_cores;
-    exportCoreNeuronMapToJson("../data/neuron_to_core_map.json");
 }
 
 void NeuronMapper::mapNeurons() {
@@ -137,11 +137,28 @@ void NeuronMapper::mapNeurons() {
     core_children.clear();
     core_parent.clear();
 
+    buildBinaryTree();
+    exportCoreTreeToJson("../data/core_tree/core_tree.json");
+
+    int root = -1;
+    for (const auto& [node, parent] : core_parent) {
+        if (parent == -1) {
+            root = node;
+            break;
+        }
+    }
+    std::ofstream logFile("../data/core_tree/core_tree_structure.txt");
+    if (logFile && root != -1) {
+        logFile << "Binary Core Tree Structure:\n";
+        logCoreTreeRecursive(root, core_tree, logFile, "", false, -1);
+        logFile.close();
+    }
+}
+
+void NeuronMapper::buildBinaryTree() {
     int next_id = core_count;
     std::vector<int> current_level;
-    for (int i = 0; i < core_count; ++i) {
-        current_level.push_back(i);
-    }
+    for (int i = 0; i < core_count; ++i) current_level.push_back(i);
 
     while (current_level.size() > 1) {
         std::vector<int> next_level;
@@ -170,23 +187,9 @@ void NeuronMapper::mapNeurons() {
 
     if (!current_level.empty()) {
         int root = current_level[0];
-        if (core_parent.find(root) == core_parent.end()) {
-            core_parent[root] = -1;
-        }
+        if (core_parent.find(root) == core_parent.end()) core_parent[root] = -1;
     }
-
     core_count = next_id;
-
-    exportCoreTreeToJson("../data/core_tree/core_tree.json");
-
-    std::ofstream logFile("../data/core_tree/core_tree_structure.txt");
-    if (logFile) {
-        logFile << "Binary Core Tree Structure:\n";
-        if (!current_level.empty()) {
-            logCoreTreeRecursive(current_level[0], core_tree, logFile, "", false, core_count - (next_id - core_count));
-        }
-        logFile.close();
-    }
 }
 
 int NeuronMapper::getCoreForNeuron(int neuron_id) const {
