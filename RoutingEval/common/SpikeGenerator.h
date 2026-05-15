@@ -2,8 +2,8 @@
  *
  *   File Name: SpikeGenerator.h
  *   Author: Ayush Patra
- *   Description: Utility class to generate spike events for neurons during routing
- *                simulation. Spikes can be generated randomly or read from a file.
+ *   Description: Utility class to manage spike events for neurons during routing
+ *                simulation. Tracks which neurons fired at a given timestep.
  *   Version History:
  *       - 2025-07-26: Initial version
  *
@@ -12,28 +12,20 @@
 #ifndef SPIKE_GENERATOR_H
 #define SPIKE_GENERATOR_H
 
-#include <vector>
-#include <random>
-#include <string>
+#include <unordered_set>
 
 class SpikeGenerator {
 public:
-    // Constructor
-    SpikeGenerator(int num_neurons);
+    SpikeGenerator();
 
-    // Generate random spikes
-    std::vector<int> generateRandomSpikes(float spike_prob);
+    void setSpikingNeurons(const std::unordered_set<int>& spikingNeurons);
+    bool isSpiking(int neuronId) const;
+    const std::unordered_set<int>& getSpikingNeurons() const;
 
-    // Load spike data from a file
-    bool loadSpikesFromFile(const std::string& filepath);
-
-    // Get the list of spiking neurons
-    std::vector<int> getSpikingNeurons() const;
-    ~SpikeGenerator(){}
+    ~SpikeGenerator() {}
 
 private:
-    int num_neurons_;
-    std::vector<int> spikes_; // list of firing neurons
+    std::unordered_set<int> spikingNeurons;
 };
 
 #endif // SPIKE_GENERATOR_H
