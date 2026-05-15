@@ -42,21 +42,21 @@ private:
     //void routeMessage(int srcCore, int tgtCore, std::unordered_set<int>& visitedCores);
 
 public:
-        HBSRoutingSimulator(const std::vector<std::vector<int>>& connectivityMatrix,
-                         const std::unordered_map<int, int>& neuronToCoreMap,
-                         const std::unordered_map<int, std::vector<int>>& coreTree,
-                         const std::unordered_map<int, int>& coreParent,
+    HBSRoutingSimulator(const std::vector<std::vector<int>>& connectivityMatrix,
+                        const std::unordered_map<int, int>& neuronToCoreMap,
+                        const std::unordered_map<int, std::vector<int>>& coreTree,
+                        const std::unordered_map<int, int>& coreParent,
                         Utils routingUtils,
                         string reportDir);
-    
-        void simulate();
-        void reportWasteStatistics();
-        long long getTotalWaste() const;
-        std::unordered_map<int, int> getWastedMessagesPerCore() const;
-        int findLCA(int sourceCore, int targetCore);
-        bool isDescendant(int current, int target);
-        std::vector<int> shortestPath(int startCore, int endCore);
-        ~HBSRoutingSimulator(){}
+
+    void simulate();
+    void reportWasteStatistics();
+    long long getTotalWaste() const;
+    std::unordered_map<int, int> getWastedMessagesPerCore() const;
+    int findLCA(int sourceCore, int targetCore);
+    bool isDescendant(int current, int target);
+    std::vector<int> shortestPath(int startCore, int endCore);
+    ~HBSRoutingSimulator(){}
 };
 
 #endif // HBS_ROUTING_SIMULATOR_H

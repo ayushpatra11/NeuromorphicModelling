@@ -41,21 +41,21 @@ private:
     //void routeMessage(int srcCore, int tgtCore, std::unordered_set<int>& visitedCores);
 
 public:
-        RoutingSimulator(const std::vector<std::vector<int>>& connectivityMatrix,
-                         const std::unordered_map<int, int>& neuronToCoreMap,
-                         const std::unordered_map<int, std::vector<int>>& coreTree,
-                         const std::unordered_map<int, int>& coreParent,
-                        Utils routingUtils,
-                        string reportDir);
-    
-        void simulate();
-        void reportWasteStatistics() const;
-        long long getTotalWaste() const;
-        std::unordered_map<int, int> getWastedMessagesPerCore() const;
-        int findLCA(int sourceCore, int targetCore);
-        bool isDescendant(int current, int target);
-        std::vector<int> shortestPath(int startCore, int endCore);
-        ~RoutingSimulator(){}
+    RoutingSimulator(const std::vector<std::vector<int>>& connectivityMatrix,
+                     const std::unordered_map<int, int>& neuronToCoreMap,
+                     const std::unordered_map<int, std::vector<int>>& coreTree,
+                     const std::unordered_map<int, int>& coreParent,
+                     Utils routingUtils,
+                     string reportDir);
+
+    void simulate();
+    void reportWasteStatistics() const;
+    long long getTotalWaste() const;
+    std::unordered_map<int, int> getWastedMessagesPerCore() const;
+    int findLCA(int sourceCore, int targetCore);
+    bool isDescendant(int current, int target);
+    std::vector<int> shortestPath(int startCore, int endCore);
+    ~RoutingSimulator(){}
 };
 
 #endif // ROUTING_SIMULATOR_H
