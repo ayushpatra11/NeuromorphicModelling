@@ -11,36 +11,28 @@
 ************************************************************************************/
 
 #include "Utils.h"
-#include <iostream>
-#include <fstream>
-#include <sstream>
+
 #include <sys/stat.h>
+
+#include <fstream>
+#include <iostream>
+#include <sstream>
+
 #include "nlohmann/json.hpp"
 using json = nlohmann::json;
 
 using namespace std;
 
 Utils::Utils() {
-        weightThreshold = 0.0435f;
-        logFileName = createLogFileName();
-        logToFile("Utils initialized, logging started...");
-        // // Load the connectivity matrix from the specified file
-        // try{
-        //     connectivityMatrix = loadConnectivityMatrix(connectivityMatrixFilePath);
-        // } catch (const exception& e) {
-        //     cerr << "Error loading connectivity matrix: " << e.what() << endl;
-        //     logToFile("Error loading connectivity matrix: " + string(e.what()));
-        //     return;
-        // }
-        // logToFile("Connectivity matrix loaded from: " + connectivityMatrixFilePath);
-        // logToFile("Connectivity matrix dimensions: " + to_string(connectivityMatrix.size()) + "x" + to_string(connectivityMatrix[0].size()));
-        //printConnectivityMatrix();
+    weightThreshold = 0.0435f;
+    logFileName = createLogFileName();
+    logToFile("Utils initialized, logging started...");
 }
 
-void Utils::setConnectivityMatrix(string matrixFilePath){
+void Utils::setConnectivityMatrix(string matrixFilePath) {
     connectivityMatrixFilePath = matrixFilePath;
     logToFile("NEW SAMPLE DATA LOADED.");
-    try{
+    try {
         connectivityMatrix = loadConnectivityMatrix(connectivityMatrixFilePath);
     } catch (const exception& e) {
         cerr << "Error loading connectivity matrix: " << e.what() << endl;
@@ -48,12 +40,13 @@ void Utils::setConnectivityMatrix(string matrixFilePath){
         return;
     }
     logToFile("Connectivity matrix loaded from: " + connectivityMatrixFilePath);
-    logToFile("Connectivity matrix dimensions: " + to_string(connectivityMatrix.size()) + "x" + to_string(connectivityMatrix[0].size()));
+    logToFile("Connectivity matrix dimensions: " + to_string(connectivityMatrix.size()) + "x" +
+              to_string(connectivityMatrix[0].size()));
 }
 
 void Utils::printConnectivityMatrix() {
     // this will print the matrix for the connectivity matrix
-    // can be used for core neuron mapping as well. 
+    // can be used for core neuron mapping as well.
     logToFile("Connecticity matrix:");
     for (const auto& row : connectivityMatrix) {
         string r = "";
@@ -66,15 +59,15 @@ void Utils::printConnectivityMatrix() {
 
 void Utils::printNeuronMap() {
     // this will print the matrix for the connectivity matrix
-    // can be used for core neuron mapping as well. 
+    // can be used for core neuron mapping as well.
     logToFile("Neuron map:");
-    for(const auto& pair : neuronCoreMap) {
+    for (const auto& pair : neuronCoreMap) {
         logToFile("Neuron " + to_string(pair.first) + " -> Core " + to_string(pair.second));
     }
 }
 
 vector<vector<int>> Utils::loadConnectivityMatrix(const string& filePath) {
-    //connecticity matrix is made from the python script. 
+    //connecticity matrix is made from the python script.
     ifstream file(filePath);
     vector<vector<int>> matrix;
 
@@ -89,7 +82,7 @@ vector<vector<int>> Utils::loadConnectivityMatrix(const string& filePath) {
     for (const auto& row : j) {
         vector<int> binaryRow;
         for (const auto& val : row) {
-            binaryRow.push_back(val>weightThreshold? 1: 0);
+            binaryRow.push_back(val > weightThreshold ? 1 : 0);
         }
         matrix.push_back(binaryRow);
     }
@@ -121,7 +114,7 @@ void Utils::logToFile(const string& message) {
     }
 }
 
-string Utils::createLogFileName(){
+string Utils::createLogFileName() {
     // Ensure the logs directory exists before writing
     mkdir("../logs", 0755);
     time_t now = time(0);

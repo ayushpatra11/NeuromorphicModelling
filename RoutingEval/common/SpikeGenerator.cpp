@@ -12,8 +12,8 @@
 *
 ************************************************************************************/
 
-
 #include "SpikeGenerator.h"
+
 #include <unordered_set>
 
 // Constructor

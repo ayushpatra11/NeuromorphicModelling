@@ -10,16 +10,19 @@
 ************************************************************************************/
 
 #include "HBSNeuronMapper.h"
-#include <iostream>
+
 #include <algorithm>
-#include <random>
 #include <fstream>
+#include <iostream>
 #include <queue>
+#include <random>
 #include <unordered_set>
 
 using json = nlohmann::json;
 
-void HBSNeuronMapper::logCoreTreeRecursive(int node, const std::unordered_map<int, std::vector<int>>& core_tree, std::ostream& out, std::string prefix = "", bool isLeft = true, int max_leaf_id = -1) {
+void HBSNeuronMapper::logCoreTreeRecursive(int node, const std::unordered_map<int, std::vector<int>>& core_tree,
+                                           std::ostream& out, std::string prefix = "", bool isLeft = true,
+                                           int max_leaf_id = -1) {
     out << prefix;
     out << (isLeft ? "├── " : "└── ");
 
@@ -41,7 +44,8 @@ void HBSNeuronMapper::logCoreTreeRecursive(int node, const std::unordered_map<in
     }
 }
 
-HBSNeuronMapper::HBSNeuronMapper(int total_neurons, int neurons_per_core, const std::vector<std::vector<int>>& conn_matrix)
+HBSNeuronMapper::HBSNeuronMapper(int total_neurons, int neurons_per_core,
+                                 const std::vector<std::vector<int>>& conn_matrix)
     : num_neurons(total_neurons), neurons_per_core(neurons_per_core), connectivity_matrix(conn_matrix) {
     core_count = (num_neurons + neurons_per_core - 1) / neurons_per_core;
     mapNeurons();
@@ -86,12 +90,8 @@ void HBSNeuronMapper::mapNeurons() {
 }
 
 // Helper to build non-binary HBS tree: leaf switches with 4 cores, others binary.
-void HBSNeuronMapper::buildHBSTree(
-    int core_count,
-    std::unordered_map<int, std::vector<int>>& core_tree,
-    std::unordered_map<int, int>& core_parent,
-    int& root_id
-) {
+void HBSNeuronMapper::buildHBSTree(int core_count, std::unordered_map<int, std::vector<int>>& core_tree,
+                                   std::unordered_map<int, int>& core_parent, int& root_id) {
     // Bottom-up: group cores into groups of 4 for leaf-level switches.
     std::vector<int> leaf_cores(core_count);
     std::iota(leaf_cores.begin(), leaf_cores.end(), 0);
@@ -143,7 +143,7 @@ int HBSNeuronMapper::getCoreForNeuron(int neuron_id) const {
     if (it != neuron_to_core.end()) {
         return it->second;
     }
-    return -1; // invalid neuron id
+    return -1;  // invalid neuron id
 }
 
 const std::unordered_map<int, int>& HBSNeuronMapper::getNeuronToCoreMap() const {
@@ -163,7 +163,8 @@ const std::unordered_map<int, int>& HBSNeuronMapper::getCoreParent() const {
 }
 
 // Recursively serialize the core tree as a nested JSON structure
-void HBSNeuronMapper::serializeCoreTree(int node, const std::unordered_map<int, std::vector<int>>& core_tree, json& j) const {
+void HBSNeuronMapper::serializeCoreTree(int node, const std::unordered_map<int, std::vector<int>>& core_tree,
+                                        json& j) const {
     j["core"] = node;
     if (core_tree.find(node) != core_tree.end()) {
         j["children"] = json::array();
