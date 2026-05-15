@@ -1,13 +1,13 @@
 //####################################################################################
 //#
-//#   File Name: NeuronMapper.h
+//#   File Name: HBSNeuronMapper.h
 //#   Author:  Ayush Patra
-//#   Description: Maps neurons to cores based on the Neurogrid routing strategy.
-//#                Randomly assigns neurons to cores. Models core-to-core connectivity 
-//#                using a binary tree for simulating multicast routing.
-//#   Version History:        
-//#       - 2025-07-26: Initial version
-//#       - 2025-07-26: Updated to binary tree topology for cores
+//#   Description: Maps neurons to cores based on the HBS (Hierarchical Broadcast
+//#                Scheme) routing strategy. Loads an existing neuron-to-core mapping
+//#                and builds a non-binary HBS tree (4-wide leaf switches, binary
+//#                upper levels) for simulating multicast routing.
+//#   Version History:
+//#       - 2025-08-06: Initial version
 //#
 //####################################################################################
 
