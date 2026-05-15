@@ -75,6 +75,15 @@ jobs:
       - name: Build routing simulator
         run: make -C RoutingEval/common
 
+      - name: Install clang-format
+        run: sudo apt-get install -y clang-format
+
+      - name: Check C++ formatting
+        run: |
+          find RoutingEval/common -name '*.cpp' -o -name '*.h' \
+            | grep -v nlohmann \
+            | xargs clang-format --dry-run --Werror
+
       - name: Verify binary exists
         run: test -f RoutingEval/build/RunSimulator
 
